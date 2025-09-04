@@ -32,7 +32,7 @@ const getPlants = {
     method: 'GET',
     path: '/plants',
     options: {
-        auth: 'jwt'
+        auth: false
     },
     handler: async (request, h) => {
         try {
