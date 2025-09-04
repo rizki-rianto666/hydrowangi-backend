@@ -49,12 +49,6 @@ const init = async () => {
     await server.register(require('./routes/planted'));
     await server.register(require('./routes/plants'));
     await server.register(require('./routes/iot'));
-    server.ext("onRequest", (request, h) => {
-        if (request.method === "options") {
-            return h.response().code(200).takeover();
-        }
-        return h.continue;
-    });
     
     server.route({
         method: 'GET',
