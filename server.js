@@ -71,7 +71,7 @@ module.exports = async (req, res) => {
     headers: req.headers,
     payload: req.body,
   });
-
+  console.log('Request:', req.method, req.url, '->', statusCode);
   // Set headers
   for (const [key, value] of Object.entries(headers)) {
     res.setHeader(key, value);
