@@ -2,7 +2,7 @@ const Telemetry = require('../models/Telemetry');
 const Control = require('../models/Control');
 
 const DEVICE_ID = "esp-001"; // default id device, fix 1 aja
-
+const SECRET_KEY_IOT = process.env.SECRET_KEY_IOT; // key rahasia supaya device ga sembarangan ngirim data
 // ---------------------
 // Create Telemetry (device kirim data sensor)
 // ---------------------
@@ -10,6 +10,10 @@ const createTelemetry = {
     method: 'POST',
     path: "/telemetry",
     handler: async (request, h) => {
+        const secret = request.headers['x-secret-key'];
+        if (secret !== SECRET_KEY_IOT) {
+            return h.response({ ok: false, message: "Unauthorized" }).code(401);
+        }
         try {
             const { ph, ppm, temp } = request.payload;
 
@@ -42,6 +46,10 @@ const getTelemetryLatest = {
     method: 'GET',
     path: '/telemetry/latest',
     handler: async (request, h) => {
+        const secret = request.headers['x-secret-key'];
+        if (secret !== SECRET_KEY_IOT) {
+            return h.response({ ok: false, message: "Unauthorized" }).code(401);
+        }
         try {
             const latest = await Telemetry.findOne()
                 .sort({ ts: -1 }) // ambil data terbaru berdasarkan timestamp
@@ -62,6 +70,10 @@ const getTelemetry = {
     method: 'GET',
     path: '/telemetry',
     handler: async (request, h) => {
+        const secret = request.headers['x-secret-key'];
+        if (secret !== SECRET_KEY_IOT) {
+            return h.response({ ok: false, message: "Unauthorized" }).code(401);
+        }
         try {
             const telemetry = await Telemetry.find().sort({ ts: -1 }).lean();
             if (!telemetry) {
@@ -83,6 +95,10 @@ const controlPesticide = {
     method: 'POST',
     path: '/pesticide',
     handler: async (request) => {
+        const secret = request.headers['x-secret-key'];
+        if (secret !== SECRET_KEY_IOT) {
+            return h.response({ ok: false, message: "Unauthorized" }).code(401);
+        }
         const { pesticideOn } = request.payload;
         const updated = await Control.findOneAndUpdate(
             { deviceId: DEVICE_ID },
@@ -102,6 +118,10 @@ const generateReport = {
     method: "GET",
     path: "/report/sensors",
     handler: async (request, h) => {
+        const secret = request.headers['x-secret-key'];
+        if (secret !== SECRET_KEY_IOT) {
+            return h.response({ ok: false, message: "Unauthorized" }).code(401);
+        }
         const { plantName } = request.query;
         const allData = await Telemetry.find().sort({ ts: 1 }).lean();
 
