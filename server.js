@@ -16,9 +16,10 @@ const init = async () => {
       cors: {
         origin: ['*'],
         headers: ['Accept', 'Content-Type', 'Authorization'],
-      }
-    }
-
+        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
+        credentials: true,
+      },
+    },
   });
 
   await server.register(Jwt);
@@ -69,18 +70,21 @@ module.exports = async (req, res) => {
     url = url.replace(/^\/api/, '') || '/';
   }
 
-  const { statusCode, headers, result, payload } = await srv.inject({
+  const { statusCode, headers, result } = await srv.inject({
     method: req.method,
     url,
     headers: req.headers,
     payload: req.body,
   });
 
+  console.log('Request:', req.method, req.url, '->', statusCode);
+  // Set headers
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value);
+  }
+
   res.statusCode = statusCode;
   res.end(
-    typeof result !== 'undefined'
-      ? (typeof result === 'object' ? JSON.stringify(result) : String(result))
-      : payload // fallback kalau result kosong → pakai payload
+    typeof result === 'object' ? JSON.stringify(result) : result
   );
-
 };
