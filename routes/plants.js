@@ -4,7 +4,7 @@ const createPlant = {
     method: 'POST',
     path: '/api/plants',
     options: {
-        auth: 'jwt'
+        auth: 'false'
     },
     handler: async (request, h) => {
         try {
