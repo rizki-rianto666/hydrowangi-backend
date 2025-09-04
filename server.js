@@ -14,10 +14,7 @@ const init = async () => {
         host: '0.0.0.0',
         routes: {
             cors: {
-                origin: ['*'],
-                headers: ['Accept', 'Content-Type', 'Authorization'],
-                exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
-                credentials: true,
+                origin: ['*']
             },
         },
     });
