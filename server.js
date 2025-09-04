@@ -65,12 +65,18 @@ const init = async () => {
 module.exports = async (req, res) => {
   const srv = await init();
 
-  const { raw, statusCode, headers, result } = await srv.inject({
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-    payload: req.body,
-  });
+  let url = req.url;
+if (url.startsWith('/api')) {
+  url = url.replace(/^\/api/, '') || '/';
+}
+
+const { statusCode, headers, result } = await srv.inject({
+  method: req.method,
+  url,
+  headers: req.headers,
+  payload: req.body,
+});
+
   console.log('Request:', req.method, req.url, '->', statusCode);
   // Set headers
   for (const [key, value] of Object.entries(headers)) {
