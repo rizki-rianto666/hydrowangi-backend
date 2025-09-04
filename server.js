@@ -59,6 +59,13 @@ const init = async () => {
     handler: () => ({ message: 'Hydrowangi API is running on Vercel!' }),
   });
 
+  server.route({
+    method: 'OPTIONS',
+    path: '/{any*}',
+    options: { auth: false },
+    handler: (request, h) => h.response().code(200)
+  });
+
   await server.initialize();
   return server;
 };
@@ -80,11 +87,15 @@ module.exports = async (req, res) => {
     payload: req.body,
   });
 
+  // forward headers ke vercel response
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value);
+  }
+
   res.statusCode = statusCode;
   res.end(
     typeof result !== 'undefined'
       ? (typeof result === 'object' ? JSON.stringify(result) : String(result))
-      : payload // fallback kalau result kosong → pakai payload
+      : payload
   );
-
 };
