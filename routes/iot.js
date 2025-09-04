@@ -63,20 +63,36 @@ const getTelemetryLatest = {
         }
     },
 };
-const getTelemetry = {
+const getTelemetries = {
     method: 'GET',
-    path: '/telemetry',
+    path: '/telemetries',
     options: { auth: 'jwt' },
     handler: async (request, h) => {
         try {
-            const telemetry = await Telemetry.find().sort({ ts: -1 }).lean();
-            return h.response(telemetry).code(200);
+            const telemetries = await Telemetry.find().sort({ ts: -1 }).lean();
+
+            // kalau mau cek debug
+            console.log("Total telemetries:", telemetries.length);
+            if (telemetries.length > 0) {
+                console.log("Sample telemetry:", telemetries[0]);
+            }
+
+            if (telemetries.length === 0) {
+                return h.response({ ok: true, message: 'No telemetry data found', data: [] }).code(200);
+            }
+
+            return h.response({
+                ok: true,
+                count: telemetries.length,
+                data: telemetries,
+            }).code(200);
         } catch (err) {
-            console.error("Error fetching telemetry:", err);
-            return h.response({ error: 'Internal Server Error' }).code(500);
+            console.error("Error fetching telemetries:", err);
+            return h.response({ ok: false, error: 'Internal Server Error' }).code(500);
         }
     },
 };
+
 
 // ---------------------
 // Pesticide control (manual ON/OFF)
@@ -202,6 +218,6 @@ const generateReport = {
 module.exports = {
     name: 'iot',
     register: async (server) => {
-        server.route([createTelemetry, getTelemetry, getTelemetryLatest, controlPesticide, generateReport]);
+        server.route([createTelemetry, getTelemetries, getTelemetryLatest, controlPesticide, generateReport]);
     }
 };

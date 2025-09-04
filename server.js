@@ -66,16 +66,16 @@ module.exports = async (req, res) => {
   const srv = await init();
 
   let url = req.url;
-if (url.startsWith('/api')) {
-  url = url.replace(/^\/api/, '') || '/';
-}
+  if (url.startsWith('/api')) {
+    url = url.replace(/^\/api/, '') || '/';
+  }
 
-const { statusCode, headers, result } = await srv.inject({
-  method: req.method,
-  url,
-  headers: req.headers,
-  payload: req.body,
-});
+  const { statusCode, headers, result } = await srv.inject({
+    method: req.method,
+    url,
+    headers: req.headers,
+    payload: req.body,
+  });
 
   console.log('Request:', req.method, req.url, '->', statusCode);
   // Set headers
