@@ -14,12 +14,14 @@ const init = async () => {
     host: '0.0.0.0',
     routes: {
       cors: {
-        origin: ['*'],
+        origin: ['http://localhost:9000'],
         headers: ['Accept', 'Content-Type', 'Authorization'],
-        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
-        credentials: true,
+        additionalHeaders: ['cache-control', 'x-requested-with'],
+        exposedHeaders: ['Content-Disposition'],
+        credentials: true, // kalau suatu saat butuh cookie
       },
-    },
+    }
+
   });
 
   await server.register(Jwt);
@@ -64,6 +66,7 @@ const init = async () => {
 // Vercel handler
 module.exports = async (req, res) => {
   const srv = await init();
+console.log('[REQUEST]', req.method, req.url, req.headers);
 
   let url = req.url;
   if (url.startsWith('/api')) {
