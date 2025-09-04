@@ -15,7 +15,7 @@ const init = async () => {
     routes: {
       cors: {
         origin: ['*'],
-        headers: ['Accept', 'Content-Type', 'Authorization'],
+        headers: ['Accept', 'Content-Type', 'Authorization', 'x-secret-key'],
         exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
         additionalHeaders: ['cache-control', 'x-requested-with'],
         additionalExposedHeaders: ['content-length', 'date'],
@@ -86,6 +86,13 @@ module.exports = async (req, res) => {
     headers: req.headers,
     payload: req.body,
   });
+
+  // Always set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type, Authorization, x-secret-key');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate, Server-Authorization, content-length, date');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   // forward headers ke vercel response
   for (const [key, value] of Object.entries(headers)) {
