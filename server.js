@@ -14,7 +14,7 @@ const init = async () => {
     host: '0.0.0.0',
     routes: {
       cors: {
-        origin: ['*'],
+        origin: ['http://localhost:5000', 'https://hydrowangi.vercel.app'],
         headers: ['Accept', 'Content-Type', 'Authorization'],
         exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
         credentials: true,
