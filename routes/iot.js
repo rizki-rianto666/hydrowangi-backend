@@ -8,7 +8,7 @@ const DEVICE_ID = "esp-001"; // default id device, fix 1 aja
 // ---------------------
 const createTelemetry = {
     method: 'POST',
-    path: "/api/telemetry",
+    path: "/telemetry",
     handler: async (request, h) => {
         try {
             const { ph, ppm, temp } = request.payload;
@@ -40,7 +40,7 @@ const createTelemetry = {
 // ---------------------
 const getTelemetryLatest = {
     method: 'GET',
-    path: '/api/telemetry/latest',
+    path: '/telemetry/latest',
     handler: async (request, h) => {
         try {
             const latest = await Telemetry.findOne()
@@ -60,7 +60,7 @@ const getTelemetryLatest = {
 };
 const getTelemetry = {
     method: 'GET',
-    path: '/api/telemetry',
+    path: '/telemetry',
     handler: async (request, h) => {
         try {
             const telemetry = await Telemetry.find().sort({ ts: -1 }).lean();
@@ -81,7 +81,7 @@ const getTelemetry = {
 // ---------------------
 const controlPesticide = {
     method: 'POST',
-    path: '/api/pesticide',
+    path: '/pesticide',
     handler: async (request) => {
         const { pesticideOn } = request.payload;
         const updated = await Control.findOneAndUpdate(
@@ -100,7 +100,7 @@ const PDFDocument = require("pdfkit");
 
 const generateReport = {
     method: "GET",
-    path: "/api/report/sensors",
+    path: "/report/sensors",
     handler: async (request, h) => {
         const { plantName } = request.query;
         const allData = await Telemetry.find().sort({ ts: 1 }).lean();

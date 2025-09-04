@@ -2,7 +2,7 @@ const Plants = require('../models/Plants');
 
 const createPlant = {
     method: 'POST',
-    path: '/api/plants',
+    path: '/plants',
     options: {
         auth: false
     },
@@ -30,7 +30,7 @@ const createPlant = {
 
 const getPlants = {
     method: 'GET',
-    path: '/api/plants',
+    path: '/plants',
     options: {
         auth: false
     },
@@ -47,7 +47,7 @@ const getPlants = {
 
 const deletePlants = {
     method: 'DELETE',
-    path: '/api/plants',
+    path: '/plants',
     options: {
         auth: 'jwt'
     },

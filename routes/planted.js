@@ -3,7 +3,7 @@ const Planted = require('../models/Planted');
 
 const createPlanted = {
     method: "POST",
-    path: "/api/planted",
+    path: "/planted",
     options: { auth: "jwt" },
     handler: async (request, h) => {
         try {
@@ -31,7 +31,7 @@ const createPlanted = {
 
 const getPlanted = {
     method: "GET",
-    path: "/api/planted",
+    path: "/planted",
     options: { auth: "jwt" },
     handler: async (request, h) => {
         try {
@@ -86,7 +86,7 @@ const harvestedPlant = {
 
 const getPlantedById = {
     method: "GET",
-    path: "/api/planted/{id}",
+    path: "/planted/{id}",
     options: { auth: "jwt" },
     handler: async (req, h) => {
         try {
@@ -103,7 +103,7 @@ const getPlantedById = {
 
 const updatePlanted = {
     method: "PUT",
-    path: "/api/planted/{id}",
+    path: "/planted/{id}",
     options: { auth: "jwt" },
     handler: async (request, h) => {
         try {
@@ -130,7 +130,7 @@ const updatePlanted = {
 
 const deletePlanted = {
     method: "DELETE",
-    path: "/api/planted/{id}",
+    path: "/planted/{id}",
     options: { auth: "jwt" },
     handler: async (request, h) => {
         try {

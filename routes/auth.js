@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 const register = {
     method: 'POST',
-    path: '/api/auth/register',
+    path: '/auth/register',
     options: {
         auth: false // No auth required for registration
     },
@@ -35,7 +35,7 @@ const register = {
 
 const login = {
     method: 'POST',
-    path: '/api/auth/login',
+    path: '/auth/login',
     options: {
         auth: false // No auth required for login
     },
