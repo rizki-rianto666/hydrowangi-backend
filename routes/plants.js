@@ -4,7 +4,7 @@ const createPlant = {
     method: 'POST',
     path: '/plants',
     options: {
-        auth: false
+        auth: 'jwt'
     },
     handler: async (request, h) => {
         try {
@@ -32,7 +32,7 @@ const getPlants = {
     method: 'GET',
     path: '/plants',
     options: {
-        auth: false
+        auth: 'jwt'
     },
     handler: async (request, h) => {
         try {

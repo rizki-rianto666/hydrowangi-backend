@@ -51,6 +51,7 @@ const getPlanted = {
 const harvestedPlant = {
     method: 'POST',
     path: '/harvest',
+    options: { auth: 'jwt' },
     handler: async (request, h) => {
         try {
             // Ambil tanaman yang lagi ditanam (cuma 1)
