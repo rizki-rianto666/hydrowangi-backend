@@ -63,6 +63,8 @@ const getTelemetryLatest = {
         }
     },
 };
+
+// ...existing code...
 const getTelemetries = {
     method: 'GET',
     path: '/telemetries',
@@ -70,22 +72,15 @@ const getTelemetries = {
     handler: async (request, h) => {
         try {
             const telemetries = await Telemetry.find().sort({ ts: -1 }).lean();
-
-            // kalau mau cek debug
             console.log("Total telemetries:", telemetries.length);
-            if (telemetries.length > 0) {
-                console.log("Sample telemetry:", telemetries[0]);
-            }
 
             if (telemetries.length === 0) {
-                return h.response({ ok: true, message: 'No telemetry data found', data: [] }).code(200);
+                // Return 404 if no data
+                return h.response({ ok: false, message: 'No telemetry data found', data: [] }).code(404);
             }
 
-            return h.response({
-                ok: true,
-                count: telemetries.length,
-                data: telemetries,
-            }).code(200);
+            // Return data if exists
+            return h.response({ ok: true, count: telemetries.length, data: telemetries }).code(200);
         } catch (err) {
             console.error("Error fetching telemetries:", err);
             return h.response({ ok: false, error: 'Internal Server Error' }).code(500);
