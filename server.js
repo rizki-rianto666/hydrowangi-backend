@@ -70,21 +70,18 @@ module.exports = async (req, res) => {
     url = url.replace(/^\/api/, '') || '/';
   }
 
-  const { statusCode, headers, result } = await srv.inject({
+  const { statusCode, headers, result, payload } = await srv.inject({
     method: req.method,
     url,
     headers: req.headers,
     payload: req.body,
   });
 
-  console.log('Request:', req.method, req.url, '->', statusCode);
-  // Set headers
-  for (const [key, value] of Object.entries(headers)) {
-    res.setHeader(key, value);
-  }
-
   res.statusCode = statusCode;
   res.end(
-    typeof result === 'object' ? JSON.stringify(result) : result
+    typeof result !== 'undefined'
+      ? (typeof result === 'object' ? JSON.stringify(result) : String(result))
+      : payload // fallback kalau result kosong → pakai payload
   );
+
 };
