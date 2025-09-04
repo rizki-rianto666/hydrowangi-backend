@@ -49,7 +49,13 @@ const init = async () => {
     await server.register(require('./routes/planted'));
     await server.register(require('./routes/plants'));
     await server.register(require('./routes/iot'));
-
+    server.ext("onRequest", (request, h) => {
+        if (request.method === "options") {
+            return h.response().code(200).takeover();
+        }
+        return h.continue;
+    });
+    
     server.route({
         method: 'GET',
         path: '/',
@@ -60,12 +66,7 @@ const init = async () => {
     await server.initialize();
     return server;
 };
-server.ext("onRequest", (request, h) => {
-    if (request.method === "options") {
-        return h.response().code(200).takeover();
-    }
-    return h.continue;
-});
+
 
 // Vercel handler
 module.exports = async (req, res) => {
