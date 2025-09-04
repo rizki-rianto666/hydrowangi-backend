@@ -38,6 +38,14 @@ const init = async () => {
         }),
     });
 
+    // Handle preflight OPTIONS request biar CORS aman
+    server.ext('onRequest', (request, h) => {
+        if (request.method === 'options') {
+            return h.response().code(200).takeover();
+        }
+        return h.continue;
+    });
+
     // Connect MongoDB sekali aja
     if (mongoose.connection.readyState === 0) {
         await mongoose.connect(process.env.MONGO_URI);
@@ -49,7 +57,7 @@ const init = async () => {
     await server.register(require('./routes/planted'));
     await server.register(require('./routes/plants'));
     await server.register(require('./routes/iot'));
-    
+
     server.route({
         method: 'GET',
         path: '/',
@@ -61,12 +69,11 @@ const init = async () => {
     return server;
 };
 
-
 // Vercel handler
 module.exports = async (req, res) => {
     const srv = await init();
 
-    const { raw, statusCode, headers, result } = await srv.inject({
+    const response = await srv.inject({
         method: req.method,
         url: req.url,
         headers: req.headers,
@@ -74,12 +81,14 @@ module.exports = async (req, res) => {
     });
 
     // Set headers
-    for (const [key, value] of Object.entries(headers)) {
+    for (const [key, value] of Object.entries(response.headers)) {
         res.setHeader(key, value);
     }
 
-    res.statusCode = statusCode;
+    res.statusCode = response.statusCode;
     res.end(
-        typeof result === 'object' ? JSON.stringify(result) : result
+        typeof response.result === 'object'
+            ? JSON.stringify(response.result)
+            : response.payload || ''
     );
 };
