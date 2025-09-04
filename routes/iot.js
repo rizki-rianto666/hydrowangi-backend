@@ -70,10 +70,6 @@ const getTelemetry = {
     handler: async (request, h) => {
         try {
             const telemetry = await Telemetry.find().sort({ ts: -1 }).lean();
-            if (!telemetry) {
-                return h.response({ message: 'No telemetry found' }).code(404);
-            }
-
             return h.response(telemetry).code(200);
         } catch (err) {
             console.error("Error fetching telemetry:", err);
