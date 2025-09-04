@@ -10,11 +10,11 @@ const createTelemetry = {
     method: 'POST',
     path: "/telemetry",
     handler: async (request, h) => {
-        const secret = request.headers['x-secret-key'];
-        if (secret !== SECRET_KEY_IOT) {
-            return h.response({ ok: false, message: "Unauthorized" }).code(401);
-        }
         try {
+            const secret = request.headers['x-secret-key'];
+            if (secret !== SECRET_KEY_IOT) {
+                return h.response({ ok: false, message: "Unauthorized" }).code(401);
+            }
             const { ph, ppm, temp } = request.payload;
 
             if (ph === undefined || ppm === undefined || temp === undefined) {
@@ -45,11 +45,8 @@ const createTelemetry = {
 const getTelemetryLatest = {
     method: 'GET',
     path: '/telemetry/latest',
+    options: { auth: 'jwt' },
     handler: async (request, h) => {
-        const secret = request.headers['x-secret-key'];
-        if (secret !== SECRET_KEY_IOT) {
-            return h.response({ ok: false, message: "Unauthorized" }).code(401);
-        }
         try {
             const latest = await Telemetry.findOne()
                 .sort({ ts: -1 }) // ambil data terbaru berdasarkan timestamp
@@ -69,11 +66,8 @@ const getTelemetryLatest = {
 const getTelemetry = {
     method: 'GET',
     path: '/telemetry',
+    options: { auth: 'jwt' },
     handler: async (request, h) => {
-        const secret = request.headers['x-secret-key'];
-        if (secret !== SECRET_KEY_IOT) {
-            return h.response({ ok: false, message: "Unauthorized" }).code(401);
-        }
         try {
             const telemetry = await Telemetry.find().sort({ ts: -1 }).lean();
             if (!telemetry) {
@@ -94,11 +88,8 @@ const getTelemetry = {
 const controlPesticide = {
     method: 'POST',
     path: '/pesticide',
+    options: { auth: 'jwt' },
     handler: async (request) => {
-        const secret = request.headers['x-secret-key'];
-        if (secret !== SECRET_KEY_IOT) {
-            return h.response({ ok: false, message: "Unauthorized" }).code(401);
-        }
         const { pesticideOn } = request.payload;
         const updated = await Control.findOneAndUpdate(
             { deviceId: DEVICE_ID },
@@ -117,11 +108,8 @@ const PDFDocument = require("pdfkit");
 const generateReport = {
     method: "GET",
     path: "/report/sensors",
+    options: { auth: 'jwt' },
     handler: async (request, h) => {
-        const secret = request.headers['x-secret-key'];
-        if (secret !== SECRET_KEY_IOT) {
-            return h.response({ ok: false, message: "Unauthorized" }).code(401);
-        }
         const { plantName } = request.query;
         const allData = await Telemetry.find().sort({ ts: 1 }).lean();
 
