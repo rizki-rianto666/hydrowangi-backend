@@ -14,12 +14,11 @@ const init = async () => {
     host: '0.0.0.0',
     routes: {
       cors: {
-        origin: ['http://localhost:9000', 'https://hydrowangi.vercel.app'],
+        origin: ['*'],
         headers: ['Accept', 'Content-Type', 'Authorization'],
-        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
-        credentials: true,
-      },
-    },
+      }
+    }
+
   });
 
   await server.register(Jwt);
