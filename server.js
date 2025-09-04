@@ -61,24 +61,4 @@ const init = async () => {
   return server;
 };
 
-// Vercel handler
-module.exports = async (req, res) => {
-  const srv = await init();
 
-  const { raw, statusCode, headers, result } = await srv.inject({
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-    payload: req.body,
-  });
-
-  // Set headers
-  for (const [key, value] of Object.entries(headers)) {
-    res.setHeader(key, value);
-  }
-
-  res.statusCode = statusCode;
-  res.end(
-    typeof result === 'object' ? JSON.stringify(result) : result
-  );
-};
