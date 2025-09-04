@@ -1,3 +1,4 @@
+// server.js
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
 const mongoose = require('mongoose');
@@ -5,20 +6,20 @@ require('dotenv').config();
 
 let server;
 
-const createServer = async () => {
-  if (server) return server; // reuse biar gak bikin ulang tiap request
+const init = async () => {
+  if (server) return server; // biar singleton
 
   server = Hapi.server({
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 5000,
     host: '0.0.0.0',
     routes: {
       cors: {
         origin: ['*'],
         headers: ['Accept', 'Content-Type', 'Authorization'],
-        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization', 'X-Custom-Header'],
-        credentials: true
-      }
-    }
+        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
+        credentials: true,
+      },
+    },
   });
 
   await server.register(Jwt);
@@ -29,22 +30,21 @@ const createServer = async () => {
       aud: 'urn:audience:test',
       iss: 'urn:issuer:test',
       sub: false,
-      maxAgeSec: 14400
+      maxAgeSec: 14400,
     },
-    validate: (artifacts) => {
-      return {
-        isValid: true,
-        credentials: { user: artifacts.decoded.payload.user }
-      };
-    }
+    validate: (artifacts) => ({
+      isValid: true,
+      credentials: { user: artifacts.decoded.payload.user },
+    }),
   });
 
-  // MongoDB connect sekali aja
+  // Connect MongoDB sekali aja
   if (mongoose.connection.readyState === 0) {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
   }
 
+  // Routes
   await server.register(require('./routes/auth'));
   await server.register(require('./routes/planted'));
   await server.register(require('./routes/plants'));
@@ -54,22 +54,31 @@ const createServer = async () => {
     method: 'GET',
     path: '/',
     options: { auth: false },
-    handler: () => ({ message: 'Hydrowangi API is running on Vercel!' })
+    handler: () => ({ message: 'Hydrowangi API is running on Vercel!' }),
   });
 
-  await server.initialize(); // initialize tanpa start listen
+  await server.initialize();
   return server;
 };
 
 // Vercel handler
 module.exports = async (req, res) => {
-  const hapi = await createServer();
-  const response = await hapi.inject({
+  const srv = await init();
+
+  const { raw, statusCode, headers, result } = await srv.inject({
     method: req.method,
     url: req.url,
+    headers: req.headers,
     payload: req.body,
-    headers: req.headers
   });
 
-  res.status(response.statusCode).set(response.headers).send(response.result);
+  // Set headers
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value);
+  }
+
+  res.statusCode = statusCode;
+  res.end(
+    typeof result === 'object' ? JSON.stringify(result) : result
+  );
 };
