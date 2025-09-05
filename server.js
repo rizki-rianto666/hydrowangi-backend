@@ -88,33 +88,32 @@ module.exports = async (req, res) => {
   });
 
   // Always set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type, Authorization, x-secret-key');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate, Server-Authorization, content-length, date');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization, x-secret-key");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Expose-Headers", "WWW-Authenticate, Server-Authorization, content-length, date");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
-  // Forward headers ke vercel response, kecuali content-encoding
+  // forward headers ke vercel response, kecuali content-encoding
   for (const [key, value] of Object.entries(headers)) {
-    if (key.toLowerCase() === 'content-encoding') continue;
+    if (key.toLowerCase() === "content-encoding") continue;
     res.setHeader(key, value);
   }
 
   res.statusCode = statusCode;
 
-  // ⬇️ fix disini
-  // ...existing code...
+  // ✅ fix disini
   if (Buffer.isBuffer(result)) {
-    res.setHeader('Content-Type', 'application/pdf'); // ⬅️ pastikan ini
     res.end(result);
-  } else if (Buffer.isBuffer(payload)) {
-    res.setHeader('Content-Type', 'application/pdf'); // ⬅️ pastikan ini juga
-    res.end(payload);
-  } else if (typeof result !== 'undefined') {
-    res.setHeader('Content-Type', 'application/json');
-    res.end(typeof result === 'object' ? JSON.stringify(result) : String(result));
+  } else if (typeof result === "string" && headers["content-type"]?.includes("application/pdf")) {
+    // kalau Hapi kasih PDF dalam bentuk string, kirim as Buffer
+    res.end(Buffer.from(result, "binary"));
   } else {
-    res.end(payload);
+    res.end(
+      typeof result !== "undefined"
+        ? (typeof result === "object" ? JSON.stringify(result) : String(result))
+        : payload
+    );
   }
-  // ...existing code...
+
 };
