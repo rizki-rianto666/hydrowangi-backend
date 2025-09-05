@@ -101,9 +101,15 @@ module.exports = async (req, res) => {
   }
 
   res.statusCode = statusCode;
-  res.end(
-    typeof result !== 'undefined'
-      ? (typeof result === 'object' ? JSON.stringify(result) : String(result))
-      : payload
-  );
+
+  if (Buffer.isBuffer(result)) {
+    res.end(result); // langsung kirim binary PDF
+  } else {
+    res.end(
+      typeof result !== 'undefined'
+        ? (typeof result === 'object' ? JSON.stringify(result) : String(result))
+        : payload
+    );
+  }
+
 };
