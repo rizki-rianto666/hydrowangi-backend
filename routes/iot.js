@@ -68,7 +68,7 @@ const getTelemetryLatest = {
 const getTelemetries = {
     method: 'GET',
     path: '/telemetries',
-    options: { auth: 'jwt' },
+    options: { auth: false },
     handler: async (request, h) => {
         try {
             const telemetries = await Telemetry.find().sort({ ts: -1 }).lean();
