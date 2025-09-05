@@ -114,35 +114,32 @@ const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
 
 const generateReport = {
-  method: "GET",
-  path: "/report/sensors",
-  options: { auth: "jwt" },
-  handler: async (request, h) => {
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 40, size: "A4" });
-      const chunks = [];
+    method: "GET",
+    path: "/report/sensors",
+    options: { auth: "jwt" },
+    handler: async (request, h) => {
+        const doc = new PDFDocument({ margin: 40, size: "A4" });
+        const chunks = [];
 
-      doc.on("data", (chunk) => chunks.push(chunk));
-      doc.on("end", () => {
-        const pdfBuffer = Buffer.concat(chunks);
-        resolve(
-          h.response(pdfBuffer)
-            .type("application/pdf")
-            .header(
-              "Content-Disposition",
-              "attachment; filename=test.pdf"
-            )
-        );
-      });
-      doc.on("error", reject);
+        return new Promise((resolve, reject) => {
+            doc.on("data", (chunk) => chunks.push(chunk));
+            doc.on("end", () => {
+                const pdfBuffer = Buffer.concat(chunks);
+                resolve(
+                    h.response(pdfBuffer)
+                        .type("application/pdf")
+                        .header("Content-Disposition", "attachment; filename=test.pdf")
+                );
+            });
+            doc.on("error", (err) => reject(err));
 
-      // Coba isi simpel banget dulu
-      doc.fontSize(20).text("HELLO WORLD", 100, 100);
-      doc.text("Ini cuma test PDF dari server", 100, 150);
+            // isi super simple
+            doc.fontSize(20).text("HELLO WORLD", 100, 100);
+            doc.fontSize(14).text("Coba test apakah keluar?", 100, 150);
 
-      doc.end();
-    });
-  },
+            doc.end();
+        });
+    },
 };
 
 
