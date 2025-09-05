@@ -113,106 +113,36 @@ const controlPesticide = {
 const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
 
-const PDFDocument = require("pdfkit");
-
 const generateReport = {
-    method: "GET",
-    path: "/report/sensors",
-    options: { auth: "jwt" },
-    handler: async (request, h) => {
-        const { plantName } = request.query;
-        const allData = await Telemetry.find().sort({ ts: 1 }).lean();
+  method: "GET",
+  path: "/report/sensors",
+  options: { auth: "jwt" },
+  handler: async (request, h) => {
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 40, size: "A4" });
+      const chunks = [];
 
-        const tempat = "KWT Banjarwangi";
-        const tanggalAwal = allData.length
-            ? new Date(allData[0].ts).toLocaleDateString()
-            : "-";
-        const tanggalAkhir = allData.length
-            ? new Date(allData[allData.length - 1].ts).toLocaleDateString()
-            : "-";
+      doc.on("data", (chunk) => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        resolve(
+          h.response(pdfBuffer)
+            .type("application/pdf")
+            .header(
+              "Content-Disposition",
+              "attachment; filename=test.pdf"
+            )
+        );
+      });
+      doc.on("error", reject);
 
-        return new Promise((resolve, reject) => {
-            const doc = new PDFDocument({ margin: 40, size: "A4" });
-            const chunks = [];
+      // Coba isi simpel banget dulu
+      doc.fontSize(20).text("HELLO WORLD", 100, 100);
+      doc.text("Ini cuma test PDF dari server", 100, 150);
 
-            // kumpulin semua data PDF ke buffer
-            doc.on("data", (chunk) => chunks.push(chunk));
-            doc.on("end", () => {
-                const pdfBuffer = Buffer.concat(chunks);
-
-                resolve(
-                    h.response(pdfBuffer)
-                        .type("application/pdf")
-                        .header(
-                            "Content-Disposition",
-                            "attachment; filename=data-sensor.pdf"
-                        )
-                );
-            });
-            doc.on("error", reject);
-
-            // ================= Isi dokumen =================
-            doc.fontSize(16).text("Riwayat Data Sensor", { align: "center" });
-            doc.moveDown();
-
-            doc.fontSize(12).text(`Tanaman yang Ditanam: ${plantName || "-"}`);
-            doc.text(`Lokasi: ${tempat}`);
-            doc.text(`Periode: ${tanggalAwal} s/d ${tanggalAkhir}`);
-            doc.moveDown(2);
-
-            const drawTableHeader = (y) => {
-                const colX = [50, 200, 300, 400];
-                const rowHeight = 20;
-
-                doc.save();
-                doc.fillColor("rgb(33,150,243)")
-                    .rect(45, y, 510, rowHeight)
-                    .fill();
-                doc.restore();
-
-                doc.fillColor("white")
-                    .font("Helvetica-Bold")
-                    .fontSize(12);
-                doc.text("Tanggal", colX[0], y + 5);
-                doc.text("TDS (ppm)", colX[1], y + 5);
-                doc.text("pH", colX[2], y + 5);
-                doc.text("Suhu (°C)", colX[3], y + 5);
-
-                doc.font("Helvetica").fillColor("black");
-
-                return y + rowHeight;
-            };
-
-            const rowHeight = 20;
-            const pageHeight = doc.page.height - doc.page.margins.bottom;
-            let yPos = drawTableHeader(doc.y);
-
-            doc.fontSize(10);
-            const colX = [50, 200, 300, 400];
-
-            allData.forEach((row) => {
-                if (yPos + rowHeight > pageHeight) {
-                    doc.addPage();
-                    yPos = drawTableHeader(doc.y);
-                }
-
-                doc.rect(45, yPos, 510, rowHeight).stroke();
-                doc.text(
-                    new Date(row.ts).toLocaleString(),
-                    colX[0] + 2,
-                    yPos + 5,
-                    { width: 140 }
-                );
-                doc.text(String(row.ppm), colX[1] + 2, yPos + 5);
-                doc.text(String(row.ph), colX[2] + 2, yPos + 5);
-                doc.text(String(row.temp), colX[3] + 2, yPos + 5);
-
-                yPos += rowHeight;
-            });
-
-            doc.end();
-        });
-    },
+      doc.end();
+    });
+  },
 };
 
 
