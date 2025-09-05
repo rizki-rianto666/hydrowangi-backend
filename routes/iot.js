@@ -113,34 +113,33 @@ const controlPesticide = {
 const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
 
+// const PDFDocument = require("pdfkit");
+
 const generateReport = {
-    method: "GET",
-    path: "/report/sensors",
-    options: { auth: false },
-    handler: async (request, h) => {
-        const doc = new PDFDocument({ margin: 40, size: "A4" });
-        const chunks = [];
+  method: "GET",
+  path: "/report/sensors",
+  options: { auth: "jwt" },
+  handler: async (request, h) => {
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
 
-        return new Promise((resolve, reject) => {
-            doc.on("data", (chunk) => chunks.push(chunk));
-            doc.on("end", () => {
-                const pdfBuffer = Buffer.concat(chunks);
-                resolve(
-                    h.response(pdfBuffer)
-                        .type("application/pdf")
-                        .header("Content-Disposition", "attachment; filename=test.pdf")
-                );
-            });
-            doc.on("error", (err) => reject(err));
+    // langsung stream ke response
+    const response = h.response(doc);
+    response.type("application/pdf");
+    response.header(
+      "Content-Disposition",
+      "attachment; filename=test.pdf"
+    );
 
-            // isi super simple
-            doc.fontSize(20).text("HELLO WORLD", 100, 100);
-            doc.fontSize(14).text("Coba test apakah keluar?", 100, 150);
+    // isi sederhana
+    doc.fontSize(20).text("HELLO WORLD", 100, 100);
+    doc.text("Coba test stream langsung", 100, 150);
 
-            doc.end();
-        });
-    },
+    doc.end();
+
+    return response;
+  },
 };
+
 
 
 module.exports = {
