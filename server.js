@@ -71,21 +71,24 @@ const init = async () => {
 };
 
 // Vercel handler
+// Vercel handler
 module.exports = async (req, res) => {
   const srv = await init();
-  console.log('[REQUEST]', req.method, req.url, req.headers);
+  console.log("[REQUEST]", req.method, req.url, req.headers);
 
   let url = req.url;
-  if (url.startsWith('/api')) {
-    url = url.replace(/^\/api/, '') || '/';
+  if (url.startsWith("/api")) {
+    url = url.replace(/^\/api/, "") || "/";
   }
 
-  const { statusCode, headers, result, payload } = await srv.inject({
+  const hapiRes = await srv.inject({
     method: req.method,
     url,
     headers: req.headers,
     payload: req.body,
   });
+
+  const { statusCode, headers, raw, payload } = hapiRes;
 
   // Always set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -94,7 +97,7 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Expose-Headers", "WWW-Authenticate, Server-Authorization, content-length, date");
   res.setHeader("Access-Control-Allow-Credentials", "true");
 
-  // forward headers ke vercel response, kecuali content-encoding
+  // forward headers ke vercel response (jangan overwrite content-encoding)
   for (const [key, value] of Object.entries(headers)) {
     if (key.toLowerCase() === "content-encoding") continue;
     res.setHeader(key, value);
@@ -102,21 +105,18 @@ module.exports = async (req, res) => {
 
   res.statusCode = statusCode;
 
-  // ✅ fix disini
-  res.statusCode = statusCode;
-
-  // kalau payload buffer → kirim langsung
-  if (Buffer.isBuffer(payload)) {
+  // 🔑 Perbedaan penting → pakai rawPayload
+  if (raw && raw.res && raw.res.payload) {
+    // raw.res.payload bisa Buffer (binary) atau string
+    if (Buffer.isBuffer(raw.res.payload)) {
+      res.end(raw.res.payload); // PDF, gambar, dll
+    } else {
+      res.end(String(raw.res.payload)); // teks biasa
+    }
+  } else if (Buffer.isBuffer(payload)) {
     res.end(payload);
-  } else if (Buffer.isBuffer(result)) {
-    res.end(result);
   } else {
-    res.end(
-      typeof result !== "undefined"
-        ? (typeof result === "object" ? JSON.stringify(result) : String(result))
-        : payload
-    );
+    res.end(typeof payload === "string" ? payload : JSON.stringify(payload));
   }
-
-
 };
+
