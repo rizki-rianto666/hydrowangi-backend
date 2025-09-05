@@ -111,6 +111,7 @@ const controlPesticide = {
 // Generate PDF report
 // ---------------------
 const PDFDocument = require("pdfkit");
+const { PassThrough } = require("stream");
 
 const generateReport = {
     method: "GET",
@@ -128,19 +129,12 @@ const generateReport = {
             ? new Date(allData[allData.length - 1].ts).toLocaleDateString()
             : "-";
 
+        // Buat PDF
         const doc = new PDFDocument({ margin: 40, size: "A4" });
+        const stream = new PassThrough();
+        doc.pipe(stream);
 
-        // buat stream dari doc
-        const stream = h.response(doc);
-        stream.type("application/pdf");
-        stream.header(
-            "Content-Disposition",
-            `attachment; filename=data-sensor.pdf`
-        );
-
-        // =======================
-        // Isi dokumen
-        // =======================
+        // ================= Isi dokumen =================
         doc.fontSize(16).text("Riwayat Data Sensor", { align: "center" });
         doc.moveDown();
 
@@ -192,11 +186,11 @@ const generateReport = {
 
         doc.end();
 
-        return stream;
+        return h.response(stream)
+            .type("application/pdf")
+            .header("Content-Disposition", "attachment; filename=data-sensor.pdf");
     },
 };
-
-
 
 
 module.exports = {
