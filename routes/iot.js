@@ -113,9 +113,6 @@ const controlPesticide = {
 const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
 
-const PDFDocument = require("pdfkit");
-const { PassThrough } = require("stream");
-
 const generateReport = {
     method: "GET",
     path: "/report/test",
