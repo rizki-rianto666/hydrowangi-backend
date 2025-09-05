@@ -116,7 +116,7 @@ const { PassThrough } = require("stream");
 const generateReport = {
     method: "GET",
     path: "/report/sensors",
-    options: { auth: "jwt" },
+    options: { auth: false },
     handler: async (request, h) => {
         const doc = new PDFDocument({ margin: 40, size: "A4" });
         const chunks = [];
