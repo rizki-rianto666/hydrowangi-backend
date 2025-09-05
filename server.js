@@ -94,8 +94,9 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate, Server-Authorization, content-length, date');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-  // forward headers ke vercel response
+  // forward headers ke vercel response, kecuali content-encoding
   for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === 'content-encoding') continue;
     res.setHeader(key, value);
   }
 
