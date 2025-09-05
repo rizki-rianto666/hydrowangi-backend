@@ -103,11 +103,13 @@ module.exports = async (req, res) => {
   res.statusCode = statusCode;
 
   // ✅ fix disini
-  if (Buffer.isBuffer(result)) {
+  res.statusCode = statusCode;
+
+  // kalau payload buffer → kirim langsung
+  if (Buffer.isBuffer(payload)) {
+    res.end(payload);
+  } else if (Buffer.isBuffer(result)) {
     res.end(result);
-  } else if (typeof result === "string" && headers["content-type"]?.includes("application/pdf")) {
-    // kalau Hapi kasih PDF dalam bentuk string, kirim as Buffer
-    res.end(Buffer.from(result, "binary"));
   } else {
     res.end(
       typeof result !== "undefined"
@@ -115,5 +117,6 @@ module.exports = async (req, res) => {
         : payload
     );
   }
+
 
 };
