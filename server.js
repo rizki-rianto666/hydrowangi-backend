@@ -73,8 +73,6 @@ const init = async () => {
 // Vercel handler
 module.exports = async (req, res) => {
   const srv = await init();
-  console.log('[REQUEST]', req.method, req.url, req.headers);
-
   let url = req.url;
   if (url.startsWith('/api')) {
     url = url.replace(/^\/api/, '') || '/';
@@ -87,7 +85,7 @@ module.exports = async (req, res) => {
     payload: req.body,
   });
   // kalau mau cek tipe aja:
-  console.log('[INJECT]', statusCode, typeof result, Buffer.isBuffer(result));
+
   // Always set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization, x-secret-key");
@@ -106,8 +104,7 @@ module.exports = async (req, res) => {
   // ✅ fix disini
   res.statusCode = statusCode;
 
-  // kalau payload buffer → kirim langsung
-  console.log('[RESPONSE]', statusCode, headers);
+
   if (Buffer.isBuffer(payload)) {
     res.end(payload);
   } else if (Buffer.isBuffer(result)) {

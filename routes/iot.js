@@ -115,30 +115,36 @@ const PDFDocument = require("pdfkit");
 const generateReport = {
     method: "GET",
     path: "/report/sensors",
-    options: { auth: 'jwt' },
+    options: { auth: "jwt" },
     handler: async (request, h) => {
         const { plantName } = request.query;
         const allData = await Telemetry.find().sort({ ts: 1 }).lean();
 
         const tempat = "KWT Banjarwangi";
-        const tanggalAwal = allData.length ? new Date(allData[0].ts).toLocaleDateString() : "-";
-        const tanggalAkhir = allData.length ? new Date(allData[allData.length - 1].ts).toLocaleDateString() : "-";
+        const tanggalAwal = allData.length
+            ? new Date(allData[0].ts).toLocaleDateString()
+            : "-";
+        const tanggalAkhir = allData.length
+            ? new Date(allData[allData.length - 1].ts).toLocaleDateString()
+            : "-";
 
-        const doc = new PDFDocument({ margin: 40, size: "A4" });
-
-        const chunks = [];
         return new Promise((resolve, reject) => {
+            const doc = new PDFDocument({ margin: 40, size: "A4" });
+            const chunks = [];
+
             doc.on("data", (chunk) => chunks.push(chunk));
             doc.on("end", () => {
                 const pdfBuffer = Buffer.concat(chunks);
                 resolve(
-                    h.response(pdfBuffer)
+                    h
+                        .response(pdfBuffer)
                         .type("application/pdf")
-                        .header("Content-Disposition", 'attachment; filename="riwayat-sensor.pdf"')
-                        .header("Content-Length", pdfBuffer.length) // ⬅️ tambahin ini
+                        .header(
+                            "Content-Disposition",
+                            "attachment; filename=data-sensor.pdf"
+                        )
                 );
             });
-
             doc.on("error", reject);
 
             // =======================
@@ -160,9 +166,7 @@ const generateReport = {
                 const rowHeight = 20;
 
                 doc.save();
-                doc.fillColor("rgb(33,150,243)")
-                    .rect(45, y, 510, rowHeight)
-                    .fill();
+                doc.fillColor("rgb(33,150,243)").rect(45, y, 510, rowHeight).fill();
                 doc.restore();
 
                 doc.fillColor("white").font("Helvetica-Bold").fontSize(12);
@@ -188,16 +192,13 @@ const generateReport = {
             const colX = [50, 200, 300, 400];
 
             allData.forEach((row) => {
-                // kalau sudah mau keluar halaman → new page + header baru
                 if (yPos + rowHeight > pageHeight) {
                     doc.addPage();
                     yPos = drawTableHeader(doc.y);
                 }
 
-                // Draw row border
                 doc.rect(45, yPos, 510, rowHeight).stroke();
 
-                // Isi teks
                 doc.text(new Date(row.ts).toLocaleString(), colX[0] + 2, yPos + 5);
                 doc.text(String(row.ppm), colX[1] + 2, yPos + 5);
                 doc.text(String(row.ph), colX[2] + 2, yPos + 5);
@@ -210,6 +211,7 @@ const generateReport = {
         });
     },
 };
+
 
 
 module.exports = {
