@@ -103,14 +103,18 @@ module.exports = async (req, res) => {
   res.statusCode = statusCode;
 
   // ⬇️ fix disini
+  // ...existing code...
   if (Buffer.isBuffer(result)) {
-    res.end(result); // kirim langsung PDF
+    res.setHeader('Content-Type', 'application/pdf'); // ⬅️ pastikan ini
+    res.end(result);
   } else if (Buffer.isBuffer(payload)) {
-    res.end(payload); // fallback kalau PDF ada di payload
+    res.setHeader('Content-Type', 'application/pdf'); // ⬅️ pastikan ini juga
+    res.end(payload);
   } else if (typeof result !== 'undefined') {
     res.setHeader('Content-Type', 'application/json');
     res.end(typeof result === 'object' ? JSON.stringify(result) : String(result));
   } else {
     res.end(payload);
   }
+  // ...existing code...
 };
