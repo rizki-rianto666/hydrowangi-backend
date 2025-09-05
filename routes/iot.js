@@ -119,11 +119,11 @@ const generateReport = {
     options: { auth: "jwt" },
     handler: async (request, h) => {
         const { plantName } = request.query;
-        const data = await Telemetry.find().sort({ ts: 1 }).lean();
-        const allData = data.data || [];
+        const allData = await Telemetry.find().sort({ ts: 1 }).lean();
+
         console.log("Generating report for", allData.length, "records");
-        console.log(allData)
-        console.log('data', data);
+        console.log('allData', allData);
+
         const tempat = "KWT Banjarwangi";
         const tanggalAwal = allData.length
             ? new Date(allData[0].ts).toLocaleDateString()
