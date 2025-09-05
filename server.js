@@ -94,7 +94,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate, Server-Authorization, content-length, date');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-  // forward headers ke vercel response, kecuali content-encoding
+  // Forward headers ke vercel response, kecuali content-encoding
   for (const [key, value] of Object.entries(headers)) {
     if (key.toLowerCase() === 'content-encoding') continue;
     res.setHeader(key, value);
@@ -102,14 +102,15 @@ module.exports = async (req, res) => {
 
   res.statusCode = statusCode;
 
+  // ⬇️ fix disini
   if (Buffer.isBuffer(result)) {
-    res.end(result); // langsung kirim binary PDF
+    res.end(result); // kirim langsung PDF
+  } else if (Buffer.isBuffer(payload)) {
+    res.end(payload); // fallback kalau PDF ada di payload
+  } else if (typeof result !== 'undefined') {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(typeof result === 'object' ? JSON.stringify(result) : String(result));
   } else {
-    res.end(
-      typeof result !== 'undefined'
-        ? (typeof result === 'object' ? JSON.stringify(result) : String(result))
-        : payload
-    );
+    res.end(payload);
   }
-
 };

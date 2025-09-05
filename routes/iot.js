@@ -135,8 +135,10 @@ const generateReport = {
                     h.response(pdfBuffer)
                         .type("application/pdf")
                         .header("Content-Disposition", 'attachment; filename="riwayat-sensor.pdf"')
+                        .header("Content-Length", pdfBuffer.length) // ⬅️ tambahin ini
                 );
             });
+
             doc.on("error", reject);
 
             // =======================
