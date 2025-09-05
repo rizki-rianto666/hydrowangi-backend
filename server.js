@@ -86,8 +86,8 @@ module.exports = async (req, res) => {
     headers: req.headers,
     payload: req.body,
   });
-  console.log('result:', result)
-  console.log('Payload:', payload)
+  // kalau mau cek tipe aja:
+  console.log('[INJECT]', statusCode, typeof result, Buffer.isBuffer(result));
   // Always set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization, x-secret-key");
