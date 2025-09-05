@@ -113,16 +113,14 @@ const controlPesticide = {
 const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
 
-// const PDFDocument = require("pdfkit");
+const PDFDocument = require("pdfkit");
 
 const generateReport = {
   method: "GET",
   path: "/report/sensors",
-  options: { auth: "jwt" },
   handler: async (request, h) => {
     const doc = new PDFDocument({ margin: 40, size: "A4" });
 
-    // langsung stream ke response
     const response = h.response(doc);
     response.type("application/pdf");
     response.header(
@@ -130,16 +128,16 @@ const generateReport = {
       "attachment; filename=test.pdf"
     );
 
-    // isi sederhana
-    doc.fontSize(20).text("HELLO WORLD", 100, 100);
-    doc.text("Coba test stream langsung", 100, 150);
+    // HARUS sebelum doc.end()
+    doc.fontSize(25).fillColor("black").text("Halo Dunia!", 100, 100);
+    doc.text("Ini isi PDF pertama kamu", 100, 150);
+    doc.moveDown().text("Harusnya keliatan ya, ga putih doang.");
 
-    doc.end();
+    doc.end(); // flush ke stream
 
     return response;
   },
 };
-
 
 
 module.exports = {
