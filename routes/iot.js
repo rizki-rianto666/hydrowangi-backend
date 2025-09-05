@@ -111,16 +111,15 @@ const controlPesticide = {
 // Generate PDF report
 // ---------------------
 const PDFDocument = require("pdfkit");
+
 const generateReport = {
     method: "GET",
     path: "/report/sensors",
     options: { auth: "jwt" },
     handler: async (request, h) => {
         const { plantName } = request.query;
-        const data = await Telemetry.find().sort({ ts: 1 }).lean();
-        const allData = data.data
-        console.log("allData:", allData);
-        console.log("data:", data);
+        const allData = await Telemetry.find().sort({ ts: 1 }).lean();
+
         const tempat = "KWT Banjarwangi";
         const tanggalAwal = allData.length
             ? new Date(allData[0].ts).toLocaleDateString()
@@ -129,76 +128,87 @@ const generateReport = {
             ? new Date(allData[allData.length - 1].ts).toLocaleDateString()
             : "-";
 
+        // buat PDFKit doc
         const doc = new PDFDocument({ margin: 40, size: "A4" });
 
-        // buat stream dari doc
-        const stream = h.response(doc);
-        stream.type("application/pdf");
-        stream.header(
-            "Content-Disposition",
-            `attachment; filename=data-sensor.pdf`
-        );
+        // kumpulin buffer
+        const chunks = [];
+        return new Promise((resolve, reject) => {
+            doc.on("data", (chunk) => chunks.push(chunk));
+            doc.on("end", () => {
+                const pdfBuffer = Buffer.concat(chunks);
+                resolve(
+                    h
+                        .response(pdfBuffer)
+                        .type("application/pdf")
+                        .header(
+                            "Content-Disposition",
+                            `attachment; filename="data-sensor.pdf"`
+                        )
+                );
+            });
+            doc.on("error", reject);
 
-        // =======================
-        // Isi dokumen
-        // =======================
-        doc.fontSize(16).text("Riwayat Data Sensor", { align: "center" });
-        doc.moveDown();
+            // isi dokumen
+            doc.fontSize(16).text("Riwayat Data Sensor", { align: "center" });
+            doc.moveDown();
 
-        doc.fontSize(12).text(`Tanaman yang Ditanam: ${plantName || "-"}`);
-        doc.text(`Lokasi: ${tempat}`);
-        doc.text(`Periode: ${tanggalAwal} s/d ${tanggalAkhir}`);
-        doc.moveDown(2);
+            doc.fontSize(12).text(`Tanaman yang Ditanam: ${plantName || "-"}`);
+            doc.text(`Lokasi: ${tempat}`);
+            doc.text(`Periode: ${tanggalAwal} s/d ${tanggalAkhir}`);
+            doc.moveDown(2);
 
-        const drawTableHeader = (y) => {
-            const colX = [50, 200, 300, 400];
+            // draw header
+            const drawTableHeader = (y) => {
+                const colX = [50, 200, 300, 400];
+                const rowHeight = 20;
+
+                doc.save();
+                doc.fillColor("rgb(33,150,243)").rect(45, y, 510, rowHeight).fill();
+                doc.restore();
+
+                doc.fillColor("white").font("Helvetica-Bold").fontSize(12);
+                doc.text("Tanggal", colX[0], y + 5);
+                doc.text("TDS (ppm)", colX[1], y + 5);
+                doc.text("pH", colX[2], y + 5);
+                doc.text("Suhu (°C)", colX[3], y + 5);
+
+                doc.font("Helvetica").fillColor("black");
+
+                return y + rowHeight;
+            };
+
             const rowHeight = 20;
+            const pageHeight = 800;
+            let yPos = drawTableHeader(80);
 
-            doc.save();
-            doc.fillColor("rgb(33,150,243)").rect(45, y, 510, rowHeight).fill();
-            doc.restore();
+            doc.fontSize(10);
+            const colX = [50, 200, 300, 400];
 
-            doc.fillColor("white").font("Helvetica-Bold").fontSize(12);
-            doc.text("Tanggal", colX[0], y + 5);
-            doc.text("TDS (ppm)", colX[1], y + 5);
-            doc.text("pH", colX[2], y + 5);
-            doc.text("Suhu (°C)", colX[3], y + 5);
+            allData.forEach((row) => {
+                if (yPos + rowHeight > pageHeight) {
+                    doc.addPage();
+                    yPos = drawTableHeader(80);
+                }
 
-            doc.font("Helvetica").fillColor("black");
+                doc.rect(45, yPos, 510, rowHeight).stroke();
 
-            return y + rowHeight;
-        };
+                doc.text(new Date(row.ts).toLocaleString(), colX[0] + 2, yPos + 5, {
+                    width: 140,
+                });
+                doc.text(String(row.ppm), colX[1] + 2, yPos + 5);
+                doc.text(String(row.ph), colX[2] + 2, yPos + 5);
+                doc.text(String(row.temp), colX[3] + 2, yPos + 5);
 
-        const rowHeight = 20;
-        const pageHeight = doc.page.height - doc.page.margins.bottom;
-        let yPos = drawTableHeader(100); // mulai dari 100
+                yPos += rowHeight;
+            });
 
-        doc.fontSize(10);
-        const colX = [50, 200, 300, 400];
-
-        allData.forEach((row, idx) => {
-            if (yPos + rowHeight > pageHeight) {
-                doc.addPage();
-                yPos = drawTableHeader(100); // reset posisi header
-            }
-
-            // border row
-            doc.rect(45, yPos, 510, rowHeight).stroke();
-
-            // isi teks
-            doc.text(new Date(row.ts).toLocaleString(), colX[0] + 2, yPos + 5, { width: 140 });
-            doc.text(String(row.ppm), colX[1] + 2, yPos + 5);
-            doc.text(String(row.ph), colX[2] + 2, yPos + 5);
-            doc.text(String(row.temp), colX[3] + 2, yPos + 5);
-
-            yPos += rowHeight;
+            // selesaiin PDF
+            doc.end();
         });
-
-        doc.end();
-
-        return stream;
     },
 };
+
 
 
 
