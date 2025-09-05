@@ -105,18 +105,24 @@ module.exports = async (req, res) => {
 
   res.statusCode = statusCode;
 
-  // 🔑 Perbedaan penting → pakai rawPayload
-  if (raw && raw.res && raw.res.payload) {
-    // raw.res.payload bisa Buffer (binary) atau string
-    if (Buffer.isBuffer(raw.res.payload)) {
-      res.end(raw.res.payload); // PDF, gambar, dll
-    } else {
-      res.end(String(raw.res.payload)); // teks biasa
-    }
-  } else if (Buffer.isBuffer(payload)) {
+  // kalau payload buffer → kirim langsung
+  if (Buffer.isBuffer(payload)) {
     res.end(payload);
+  } else if (Buffer.isBuffer(result)) {
+    res.end(result);
   } else {
-    res.end(typeof payload === "string" ? payload : JSON.stringify(payload));
+    const contentType = headers["content-type"] || "";
+    if (contentType.includes("application/pdf")) {
+      // ⬅️ khusus PDF
+      res.end(Buffer.from(payload));
+    } else {
+      res.end(
+        typeof result !== "undefined"
+          ? (typeof result === "object" ? JSON.stringify(result) : String(result))
+          : payload
+      );
+    }
   }
+
 };
 
