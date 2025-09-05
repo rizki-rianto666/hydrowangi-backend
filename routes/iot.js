@@ -111,16 +111,15 @@ const controlPesticide = {
 // Generate PDF report
 // ---------------------
 const PDFDocument = require("pdfkit");
+
 const generateReport = {
     method: "GET",
     path: "/report/sensors",
     options: { auth: "jwt" },
     handler: async (request, h) => {
         const { plantName } = request.query;
-        const data = await Telemetry.find().sort({ ts: 1 }).lean();
-        const allData = data.data
-        console.log("allData:", allData);
-        console.log("data:", data);
+        const allData = await Telemetry.find().sort({ ts: 1 }).lean();
+
         const tempat = "KWT Banjarwangi";
         const tanggalAwal = allData.length
             ? new Date(allData[0].ts).toLocaleDateString()
@@ -171,22 +170,19 @@ const generateReport = {
 
         const rowHeight = 20;
         const pageHeight = doc.page.height - doc.page.margins.bottom;
-        let yPos = drawTableHeader(100); // mulai dari 100
+        let yPos = drawTableHeader(doc.y);
 
         doc.fontSize(10);
         const colX = [50, 200, 300, 400];
 
-        allData.forEach((row, idx) => {
+        allData.forEach((row) => {
             if (yPos + rowHeight > pageHeight) {
                 doc.addPage();
-                yPos = drawTableHeader(100); // reset posisi header
+                yPos = drawTableHeader(doc.y);
             }
 
-            // border row
             doc.rect(45, yPos, 510, rowHeight).stroke();
-
-            // isi teks
-            doc.text(new Date(row.ts).toLocaleString(), colX[0] + 2, yPos + 5, { width: 140 });
+            doc.text(new Date(row.ts).toLocaleString(), colX[0] + 2, yPos + 5);
             doc.text(String(row.ppm), colX[1] + 2, yPos + 5);
             doc.text(String(row.ph), colX[2] + 2, yPos + 5);
             doc.text(String(row.temp), colX[3] + 2, yPos + 5);
@@ -199,6 +195,7 @@ const generateReport = {
         return stream;
     },
 };
+
 
 
 
