@@ -122,7 +122,6 @@ const generateReport = {
         const allData = await Telemetry.find().sort({ ts: 1 }).lean();
 
         console.log("Generating report for", allData.length, "records");
-        console.log('allData', allData);
 
         const tempat = "KWT Banjarwangi";
         const tanggalAwal = allData.length
@@ -134,7 +133,8 @@ const generateReport = {
 
         // Buat PDF
         const doc = new PDFDocument({ margin: 40, size: "A4" });
-
+        const stream = new PassThrough();
+        doc.pipe(stream); // 🔥 HARUS sebelum isi dokumen
 
         // ================= Isi dokumen =================
         doc.fontSize(16).text("Riwayat Data Sensor", { align: "center" });
@@ -185,8 +185,7 @@ const generateReport = {
 
             yPos += rowHeight;
         });
-        const stream = new PassThrough();
-        doc.pipe(stream);
+
         doc.end();
 
         return h.response(stream)
