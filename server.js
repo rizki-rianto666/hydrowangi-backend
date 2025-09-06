@@ -105,9 +105,25 @@ module.exports = async (req, res) => {
   res.statusCode = statusCode;
 
 
+<<<<<<< HEAD
   res.end(
     typeof result !== "undefined"
       ? (typeof result === "object" ? JSON.stringify(result) : String(result))
       : payload
   );
+=======
+  if (Buffer.isBuffer(payload)) {
+    res.end(payload);
+  } else if (Buffer.isBuffer(result)) {
+    res.end(result);
+  } else {
+    res.end(
+      typeof result !== "undefined"
+        ? (typeof result === "object" ? JSON.stringify(result) : String(result))
+        : payload
+    );
+  }
+
+
+>>>>>>> 0884a9a16e9fcee6cfbcb490aa5a1e3af3f3f0d8
 };
