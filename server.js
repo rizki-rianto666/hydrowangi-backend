@@ -84,10 +84,11 @@ module.exports = async (req, res) => {
 
   // Always set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization, x-secret-key");
+  res.setHeader("Access-Control-Allow-Headers", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Expose-Headers", "WWW-Authenticate, Server-Authorization, content-length, date");
   res.setHeader("Access-Control-Allow-Credentials", "true");
+
 
   // forward headers ke vercel response, kecuali content-encoding
   for (const [key, value] of Object.entries(headers)) {
