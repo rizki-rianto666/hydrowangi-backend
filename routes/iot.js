@@ -110,6 +110,6 @@ const controlPesticide = {
 module.exports = {
     name: 'iot',
     register: async (server) => {
-        server.route([createTelemetry, getTelemetries, getTelemetryLatest, controlPesticide, generateReport]);
+        server.route([createTelemetry, getTelemetries, getTelemetryLatest, controlPesticide]);
     }
 };
