@@ -47,10 +47,10 @@ const init = async () => {
   }
 
   // Routes
-  await server.register(require('./routes/auth'));
-  await server.register(require('./routes/planted'));
-  await server.register(require('./routes/plants'));
-  await server.register(require('./routes/iot'));
+  await server.register(require('./routes/auth'), { routes: { prefix: '/api' } });
+  await server.register(require('./routes/planted'), { routes: { prefix: '/api' } });
+  await server.register(require('./routes/plants'), { routes: { prefix: '/api' } });
+  await server.register(require('./routes/iot'), { routes: { prefix: '/api' } });
 
   server.route({
     method: 'GET',
@@ -81,7 +81,6 @@ module.exports = async (req, res) => {
     headers: req.headers,
     payload: req.body,
   });
-  // kalau mau cek tipe aja:
 
   // Always set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
