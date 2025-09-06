@@ -74,9 +74,6 @@ const init = async () => {
 module.exports = async (req, res) => {
   const srv = await init();
   let url = req.url;
-  if (url.startsWith('/api')) {
-    url = url.replace(/^\/api/, '') || '/';
-  }
 
   const { statusCode, headers, result, payload } = await srv.inject({
     method: req.method,
