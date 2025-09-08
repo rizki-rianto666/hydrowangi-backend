@@ -13,8 +13,7 @@ const createTelemetry = {
         try {
             const secret = request.headers['x-secret-key'];
             console.log('secret Req', secret)
-            console.log('SECRET_KEY_IOT', SECRET_KEY_IOT)
-            if (secret !== SECRET_KEY_IOT) {
+            if (secret !== process.env.SECRET_KEY_IOT) {
                 return h.response({ ok: false, message: "Unauthorized" }).code(401);
             }
             const { ph, ppm, temp } = request.payload;
