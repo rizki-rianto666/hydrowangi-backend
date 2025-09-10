@@ -98,9 +98,10 @@ const controlPesticide = {
   path: '/pesticide',
   handler: async (request, h) => {
     try {
+        const {pesticideOn} = request.payload;
       await Control.findOneAndUpdate(
         { deviceId: DEVICE_ID },
-        { pesticideOn: true, updatedAt: new Date() },
+        { pesticideOn, updatedAt: new Date() },
         { upsert: true }
       );
 
