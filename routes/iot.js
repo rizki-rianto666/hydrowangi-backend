@@ -91,40 +91,51 @@ const getTelemetries = {
 
 
 // ---------------------
-// Pesticide control (manual ON/OFF)
+// Pesticide control (FE trigger ON)
 // ---------------------
 const controlPesticide = {
-    method: 'POST',
-    path: '/pesticide',
-    handler: async (request, h) => {
-        try {
-            // set ON
-            await Control.findOneAndUpdate(
-                { deviceId: DEVICE_ID },
-                { pesticideOn: true, updatedAt: new Date() },
-                { upsert: true }
-            );
+  method: 'POST',
+  path: '/pesticide',
+  handler: async (request, h) => {
+    try {
+      await Control.findOneAndUpdate(
+        { deviceId: DEVICE_ID },
+        { pesticideOn: true, updatedAt: new Date() },
+        { upsert: true }
+      );
 
-            // tunggu 3 detik
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-
-            // set OFF
-            await Control.findOneAndUpdate(
-                { deviceId: DEVICE_ID },
-                { pesticideOn: false, updatedAt: new Date() }
-            );
-
-            return h.response({ ok: true, message: "Selesai disemprot ✅" }).code(200);
-        } catch (err) {
-            console.error(err);
-            return h.response({ ok: false, message: "Error applying pesticide ❌" }).code(500);
-        }
+      // FE gak perlu nunggu 3 detik, cukup dikasih respon OK
+      return h.response({ ok: true, message: "Penyemprotan dimulai 🚀" }).code(200);
+    } catch (err) {
+      console.error(err);
+      return h.response({ ok: false, message: "Error applying pesticide ❌" }).code(500);
     }
+  }
+};
+
+// ---------------------
+// Endpoint untuk ESP polling status control
+// ---------------------
+const pollStatus = {
+  method: 'GET',
+  path: '/control',
+  handler: async (request, h) => {
+    try {
+      const control = await Control.findOne({ deviceId: DEVICE_ID }).lean();
+      return h.response({
+        ok: true,
+        pesticideOn: control?.pesticideOn || false
+      }).code(200);
+    } catch (err) {
+      console.error(err);
+      return h.response({ ok: false, message: "Error fetching control" }).code(500);
+    }
+  }
 };
 
 module.exports = {
     name: 'iot',
     register: async (server) => {
-        server.route([createTelemetry, getTelemetries, getTelemetryLatest, controlPesticide]);
+        server.route([createTelemetry, getTelemetries, getTelemetryLatest, controlPesticide, pollStatus]);
     }
 };
