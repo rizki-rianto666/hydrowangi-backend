@@ -124,6 +124,7 @@ const pollStatus = {
       const control = await Control.findOne({ deviceId: DEVICE_ID }).lean();
       return h.response({
         ok: true,
+        pesticide:control,
         pesticideOn: control?.pesticideOn || false
       }).code(200);
     } catch (err) {
