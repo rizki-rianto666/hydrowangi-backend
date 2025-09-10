@@ -96,16 +96,30 @@ const getTelemetries = {
 const controlPesticide = {
     method: 'POST',
     path: '/pesticide',
-    options: { auth: 'jwt' },
-    handler: async (request) => {
-        const { pesticideOn } = request.payload;
-        const updated = await Control.findOneAndUpdate(
-            { deviceId: DEVICE_ID },
-            { pesticideOn, updatedAt: new Date() },
-            { new: true, upsert: true }
-        ).lean();
-        return { ok: true, state: updated };
-    },
+    handler: async (request, h) => {
+        try {
+            // set ON
+            await Control.findOneAndUpdate(
+                { deviceId: DEVICE_ID },
+                { pesticideOn: true, updatedAt: new Date() },
+                { upsert: true }
+            );
+
+            // tunggu 3 detik
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+
+            // set OFF
+            await Control.findOneAndUpdate(
+                { deviceId: DEVICE_ID },
+                { pesticideOn: false, updatedAt: new Date() }
+            );
+
+            return h.response({ ok: true, message: "Selesai disemprot ✅" }).code(200);
+        } catch (err) {
+            console.error(err);
+            return h.response({ ok: false, message: "Error applying pesticide ❌" }).code(500);
+        }
+    }
 };
 
 module.exports = {
