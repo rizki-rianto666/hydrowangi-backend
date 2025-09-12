@@ -93,26 +93,46 @@ const getTelemetries = {
 // ---------------------
 // Pesticide control (FE trigger ON)
 // ---------------------
+// helper untuk sleep
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 const controlPesticide = {
   method: 'POST',
   path: '/pesticide',
   handler: async (request, h) => {
     try {
-        const {pesticideOn} = request.payload;
+      // set ON
       await Control.findOneAndUpdate(
         { deviceId: DEVICE_ID },
-        { pesticideOn, updatedAt: new Date() },
+        { pesticideOn: true, updatedAt: new Date() },
         { upsert: true }
       );
 
-      // FE gak perlu nunggu 3 detik, cukup dikasih respon OK
-      return h.response({ ok: true, message: "Penyemprotan dimulai 🚀" }).code(200);
+      // tunggu 3 detik
+      await sleep(3000);
+
+      // set OFF
+      await Control.findOneAndUpdate(
+        { deviceId: DEVICE_ID },
+        { pesticideOn: false, updatedAt: new Date() }
+      );
+
+      // respon ke FE setelah benar2 OFF
+      return h.response({
+        ok: true,
+        message: "Selesai disemprot ✅"
+      }).code(200);
+
     } catch (err) {
-      console.error(err);
-      return h.response({ ok: false, message: "Error applying pesticide ❌" }).code(500);
+      console.error("Error control pesticide:", err);
+      return h.response({
+        ok: false,
+        message: "Error applying pesticide ❌"
+      }).code(500);
     }
   }
 };
+
 
 // ---------------------
 // Endpoint untuk ESP polling status control
