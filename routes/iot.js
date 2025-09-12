@@ -127,7 +127,7 @@ const controlPesticide = {
       console.error("Error control pesticide:", err);
       return h.response({
         ok: false,
-        message: "Error applying pesticide ❌"
+        message: "Error semprot pesticide ❌"
       }).code(500);
     }
   }
@@ -139,7 +139,7 @@ const controlPesticide = {
 // ---------------------
 const pollStatus = {
   method: 'GET',
-  path: '/control',
+  path: '/pesticide',
   handler: async (request, h) => {
     try {
       const control = await Control.findOne({ deviceId: DEVICE_ID }).lean();
