@@ -107,6 +107,43 @@ const getTelemetries = {
 
 
 // ---------------------
+// Delete All Telemetries (Clear data after hydroponic cycle)
+// ---------------------
+const deleteAllTelemetries = {
+  method: 'DELETE',
+  path: '/telemetries',
+  options: { auth: 'jwt' }, // Requires authentication to prevent accidental deletion
+  handler: async (request, h) => {
+    try {
+      // Get count before deletion for logging
+      const countBefore = await Telemetry.countDocuments();
+      console.log(`Deleting ${countBefore} telemetry records...`);
+
+      // Delete all telemetry data
+      const result = await Telemetry.deleteMany({});
+
+      console.log(`Successfully deleted ${result.deletedCount} telemetry records`);
+
+      return h.response({
+        ok: true,
+        message: `Successfully deleted all telemetry data`,
+        deletedCount: result.deletedCount,
+        timestamp: new Date()
+      }).code(200);
+
+    } catch (err) {
+      console.error("Error deleting all telemetries:", err);
+      return h.response({
+        ok: false,
+        message: "Failed to delete telemetry data",
+        error: 'Internal Server Error'
+      }).code(500);
+    }
+  },
+};
+
+
+// ---------------------
 // Pesticide control (FE trigger ON)
 // ---------------------
 // helper untuk sleep
@@ -174,6 +211,6 @@ const pollStatus = {
 module.exports = {
   name: 'iot',
   register: async (server) => {
-    server.route([getPpm,createTelemetry, getTelemetries, getTelemetryLatest, controlPesticide, pollStatus]);
+    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pollStatus])
   }
-};
+}
