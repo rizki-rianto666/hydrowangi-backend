@@ -9,10 +9,10 @@ const SECRET_KEY_IOT = process.env.SECRET_KEY_IOT; // key rahasia supaya device 
 const getPpm = {
   method: 'GET',
   path: '/ppm',
-  handler: async (req, h) => {
+  handler: async (request, h) => {
     try {
-        const secret = request.headers['x-secret-key'];
-        if (secret !== process.env.SECRET_KEY_IOT) {
+      const secret = request.headers['x-secret-key'];
+      if (secret !== process.env.SECRET_KEY_IOT) {
         return h.response({ ok: false, message: "Unauthorized" }).code(401);
       }
       const planted = await Planted.findOne(1).lean();
