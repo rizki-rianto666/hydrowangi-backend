@@ -11,6 +11,10 @@ const getPpm = {
   path: '/ppm',
   handler: async (req, h) => {
     try {
+        const secret = request.headers['x-secret-key'];
+        if (secret !== process.env.SECRET_KEY_IOT) {
+        return h.response({ ok: false, message: "Unauthorized" }).code(401);
+      }
       const planted = await Planted.findOne(1).lean();
       return h.response({ ok: true, ppm: planted?.ppm || 0 }).code(200);
     } catch (err) {
