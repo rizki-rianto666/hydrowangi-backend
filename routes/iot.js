@@ -12,7 +12,9 @@ const getPpm = {
   handler: async (request, h) => {
     try {
       const secret = request.headers['x-secret-key'];
-      if (secret !== process.env.SECRET_KEY_IOT) {
+      console.log('secret Req', secret)
+      console.log('SECRET_KEY_IOT', SECRET_KEY_IOT)
+      if (secret !== SECRET_KEY_IOT) {
         return h.response({ ok: false, message: "Unauthorized" }).code(401);
       }
       const planted = await Planted.findOne(1).lean();
