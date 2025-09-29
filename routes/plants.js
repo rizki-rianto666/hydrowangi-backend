@@ -53,7 +53,7 @@ const deletePlants = {
     },
     handler: async (request, h) => {
         try {
-            const { id } = request.payload;
+            const { id } = request.params;
             const deletedPlant = await Plants.findOneAndDelete( id );
             if (!deletedPlant) {
                 return h.response({ message: 'Plant not found' }).code(404);
