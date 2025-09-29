@@ -18,6 +18,7 @@ const getPpm = {
         return h.response({ ok: false, message: "Unauthorized" }).code(401);
       }
       const planted = await Planted.findOne().lean();
+      console.log('planted', planted)
       return h.response({ ok: true, ppm: planted?.tds || 0 }).code(200);
     } catch (err) {
       console.error(err);
