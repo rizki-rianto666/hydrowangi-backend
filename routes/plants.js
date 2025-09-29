@@ -47,14 +47,14 @@ const getPlants = {
 
 const deletePlants = {
     method: 'DELETE',
-    path: '/plants',
+    path: '/plants/{id}',
     options: {
         auth: 'jwt'
     },
     handler: async (request, h) => {
         try {
-            const { name } = request.payload;
-            const deletedPlant = await Plants.findOneAndDelete({ name });
+            const { id } = request.payload;
+            const deletedPlant = await Plants.findOneAndDelete( id );
             if (!deletedPlant) {
                 return h.response({ message: 'Plant not found' }).code(404);
             }
