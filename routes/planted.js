@@ -232,7 +232,7 @@ const deletePlanted = {
     handler: async (request, h) => {
         try {
             const { id } = request.params;
-            const deletedPlanted = await Planted.findByIdAndDelete(id);
+            const deletedPlanted = await Planted.findByIdAndDelete({id});
 
             console.log('Deleted planted:', deletedPlanted);
             console.log('Deleted planted ID:', id);
