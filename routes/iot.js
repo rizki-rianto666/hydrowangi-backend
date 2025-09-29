@@ -17,7 +17,7 @@ const getPpm = {
       if (secret !== SECRET_KEY_IOT) {
         return h.response({ ok: false, message: "Unauthorized" }).code(401);
       }
-      const planted = await Planted.findOne(1).lean();
+      const planted = await Planted.findOne().lean();
       return h.response({ ok: true, ppm: planted?.ppm || 0 }).code(200);
     } catch (err) {
       console.error(err);
@@ -167,8 +167,8 @@ const controlPesticide = {
         { upsert: true }
       );
 
-      // tunggu 3 detik
-      await sleep(3000);
+      // tunggu 10 detik
+      await sleep(10000);
 
       // set OFF
       await Control.findOneAndUpdate(
@@ -194,7 +194,7 @@ const controlPesticide = {
 
 
 // ---------------------
-// Endpoint untuk ESP polling status control
+// Endpoint untuk ESP polling status control pstisida
 // ---------------------
 const pollStatus = {
   method: 'GET',
