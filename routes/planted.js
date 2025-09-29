@@ -234,6 +234,9 @@ const deletePlanted = {
             const { id } = request.params;
             const deletedPlanted = await Planted.findByIdAndDelete(id);
 
+            console.log('Deleted planted:', deletedPlanted);
+            console.log('Deleted planted ID:', id);
+
             if (!deletedPlanted) {
                 return h.response({ message: 'Planted not found' }).code(404);
             }
