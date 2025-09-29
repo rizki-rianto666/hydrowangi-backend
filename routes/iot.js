@@ -19,7 +19,7 @@ const getPpm = {
       }
       const planted = await Planted.findOne().lean();
       console.log('planted', planted)
-      return h.response({ ok: true, ppm: planted?.tds || 0 }).code(200);
+      return h.response({ ok: true, ppm: planted?.plant.tds || 0 }).code(200);
     } catch (err) {
       console.error(err);
       return h.response({ ok: false, message: "Error fetching ppm" }).code(500);
