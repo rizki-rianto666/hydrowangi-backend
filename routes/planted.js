@@ -174,7 +174,7 @@ const harvestedPlant = {
 // Get planted by ID (keep for backward compatibility)
 const getPlantedById = {
     method: "GET",
-    path: "/planted/{id}",
+    path: "/planted/id/{id}",
     options: { auth: "jwt" },
     handler: async (req, h) => {
         try {
