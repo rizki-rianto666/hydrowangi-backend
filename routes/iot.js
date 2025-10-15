@@ -217,7 +217,7 @@ const pesticideStatus = {
 
 const controlNutritionPump = {
   method: 'POST',
-  path: '/nutritionPump',
+  path: '/nutrition-pump',
   handler: async (request, h) => {
     try {
       // set ON
@@ -257,7 +257,7 @@ const controlNutritionPump = {
 // ---------------------
 const nutritionStatus = {
   method: 'GET',
-  path: '/nutritionPump',
+  path: '/nutrition-pump',
   handler: async (request, h) => {
     try {
       const control = await Control.findOne({ deviceId: DEVICE_ID }).lean();
