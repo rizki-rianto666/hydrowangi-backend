@@ -197,7 +197,7 @@ const controlPesticide = {
 // ---------------------
 // Endpoint untuk ESP polling status control pstisida
 // ---------------------
-const pollStatus = {
+const pesticideStatus = {
   method: 'GET',
   path: '/pesticide',
   handler: async (request, h) => {
@@ -215,9 +215,66 @@ const pollStatus = {
   }
 };
 
+const controlNutritionPump = {
+  method: 'POST',
+  path: '/nutritionPump',
+  handler: async (request, h) => {
+    try {
+      // set ON
+      await Control.findOneAndUpdate(
+        { deviceId: DEVICE_ID },
+        { nutritionOn: true, updatedAt: new Date() },
+        { upsert: true }
+      );
+
+      // tunggu 10 detik
+      await sleep(10000);
+
+      // set OFF
+      await Control.findOneAndUpdate(
+        { deviceId: DEVICE_ID },
+        { nutritionOn: false, updatedAt: new Date() }
+      );
+
+      // respon ke FE setelah benar2 OFF
+      return h.response({
+        ok: true,
+        message: "Selesai disemprot ✅"
+      }).code(200);
+    } catch (err) {
+      console.error("Error control pompa:", err);
+      return h.response({
+        ok: false,
+        message: "Error pompa nutrisi ❌"
+      }).code(500);
+    }
+  }
+};
+
+
+// ---------------------
+// Endpoint untuk ESP polling status control pstisida
+// ---------------------
+const nutritionStatus = {
+  method: 'GET',
+  path: '/nutritionPump',
+  handler: async (request, h) => {
+    try {
+      const control = await Control.findOne({ deviceId: DEVICE_ID }).lean();
+      return h.response({
+        ok: true,
+        nutritionOn: control?.nutritionOn || false
+      }).code(200);
+    } catch (err) {
+      console.error(err);
+      return h.response({ ok: false, message: "Error fetching control" }).code(500);
+    }
+  }
+};
+
 module.exports = {
   name: 'iot',
   register: async (server) => {
-    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pollStatus])
+    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pesticideStatus, controlNutritionPump, nutritionStatus])
   }
 }
