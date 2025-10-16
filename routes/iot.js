@@ -98,11 +98,6 @@ const getTelemetries = {
       const telemetries = await Telemetry.find().sort({ ts: -1 }).lean();
       console.log("Total telemetries:", telemetries.length);
 
-      if (telemetries.length === 0) {
-        // Return 404 if no data
-        return h.response({ ok: false, message: 'No telemetry data found', data: [] }).code(404);
-      }
-
       // Return data if exists
       return h.response({ ok: true, count: telemetries.length, data: telemetries }).code(200);
     } catch (err) {
