@@ -156,6 +156,26 @@ const deleteAllTelemetries = {
 // helper untuk sleep
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+let pumpDurations = {
+  nutrisi: 10000,     // default 10 detik
+  pestisida: 10000
+};
+
+const setTimerPump = {
+  method: 'POST',
+  path: '/pump-duration',
+  handler: async (request, h) => {
+    const { type, duration } = request.payload;
+    if (!['nutrisi', 'pestisida'].includes(type)) {
+      return h.response({ error: 'Jenis pompa tidak valid' }).code(400);
+    }
+
+    pumpDurations[type] = duration * 1000; // simpan dalam ms
+    return { type, duration };
+  }
+};
+
+
 const controlPesticide = {
   method: 'POST',
   path: '/pesticide',
@@ -168,8 +188,8 @@ const controlPesticide = {
         { upsert: true }
       );
 
-      // tunggu 10 detik
-      await sleep(10000);
+      // tunggu dulu....
+    await sleep(pumpDurations['pestisida']);  
 
       // set OFF
       await Control.findOneAndUpdate(
@@ -228,7 +248,7 @@ const controlNutritionPump = {
       );
 
       // tunggu 10 detik
-      await sleep(10000);
+      await sleep(pumpDurations['nutrisi']); 
 
       // set OFF
       await Control.findOneAndUpdate(
@@ -239,7 +259,7 @@ const controlNutritionPump = {
       // respon ke FE setelah benar2 OFF
       return h.response({
         ok: true,
-        message: "Selesai disemprot ✅"
+        message: "Selesai Dinyalakan ✅"
       }).code(200);
     } catch (err) {
       console.error("Error control pompa:", err);
