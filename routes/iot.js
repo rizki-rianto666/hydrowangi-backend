@@ -6,6 +6,14 @@ const DEVICE_ID = "esp-001"; // default id device, fix 1 aja
 const SECRET_KEY_IOT = process.env.SECRET_KEY_IOT; // key rahasia supaya device ga sembarangan ngirim data
 
 
+// In-memory store for real-time data (from ESP)
+let currentLiveData = {
+  ph: null,
+  ppm: null,
+  temp: null,
+  lastReceived: null
+};
+
 const getPpm = {
   method: 'GET',
   path: '/ppm',
@@ -45,17 +53,71 @@ const createTelemetry = {
         return h.response({ ok: false, message: "Missing required fields (ph, ppm, temp)" }).code(400);
       }
 
-      const doc = await Telemetry.create({
-        deviceId: DEVICE_ID,
-        ph,
-        ppm,
-        temp,
-        ts: new Date(),
-      });
+      // ✅ ALWAYS update real-time data for display
+      currentLiveData = {
+        ph, ppm, temp,
+        lastReceived: new Date()
+      };
 
-      return h
-        .response({ ok: true, id: doc._id, ts: doc.ts })
-        .code(201);
+      console.log('Live data updated:', { ph, ppm, temp });
+
+      // ✅ Only save to database if notable changes
+      const latestStored = await Telemetry.findOne()
+        .sort({ ts: -1 });
+
+      // First record? Always save
+      if (!latestStored) {
+        const doc = await Telemetry.create({
+          deviceId: DEVICE_ID,
+          ph,
+          ppm,
+          temp,
+          ts: new Date(),
+        });
+        return h
+          .response({ ok: true, id: doc._id, ts: doc.ts, action: "saved (first record)" })
+          .code(201);
+      }
+
+      // Check for notable changes based on your thresholds
+      const hasNotableChange = 
+        Math.abs(ph - latestStored.ph) >= 1 ||      // pH changes by 1 point
+        Math.abs(ppm - latestStored.ppm) >= 100 ||  // PPM changes by 100
+        Math.abs(temp - latestStored.temp) >= 5;    // Temp changes by 5°C
+
+      if (hasNotableChange) {
+        const doc = await Telemetry.create({
+          deviceId: DEVICE_ID,
+          ph,
+          ppm,
+          temp,
+          ts: new Date(),
+        });
+        return h
+          .response({ 
+            ok: true, 
+            id: doc._id, 
+            ts: doc.ts, 
+            action: "saved (notable change)",
+            changes: {
+              ph: `${latestStored.ph} → ${ph}`,
+              ppm: `${latestStored.ppm} → ${ppm}`,
+              temp: `${latestStored.temp} → ${temp}`
+            }
+          })
+          .code(201);
+      } else {
+        // No notable changes, don't save to database
+        return h
+          .response({ 
+            ok: true, 
+            action: "live data updated, storage skipped (no notable changes)",
+            message: "Data unchanged beyond thresholds - not saved to DB",
+            currentValues: { ph, ppm, temp }
+          })
+          .code(200);
+      }
+
     } catch (err) {
       console.error("Error saving telemetry:", err);
       return h.response({ ok: false, error: "Internal Server Error" }).code(500);
@@ -64,7 +126,7 @@ const createTelemetry = {
 };
 
 // ---------------------
-// Get latest Telemetry (FE ambil data sensor terbaru)
+// Get latest Telemetry (FE ambil data sensor terbaru - REAL TIME from memory)
 // ---------------------
 const getTelemetryLatest = {
   method: 'GET',
@@ -72,15 +134,21 @@ const getTelemetryLatest = {
   options: { auth: 'jwt' },
   handler: async (request, h) => {
     try {
-      const latest = await Telemetry.findOne()
-        .sort({ ts: -1 }) // ambil data terbaru berdasarkan timestamp
-        .lean();          // biar hasil plain object, bukan mongoose doc
-
-      if (!latest) {
-        return h.response({ message: 'No telemetry found' }).code(404);
+      // Return real-time data from memory, not from database
+      if (currentLiveData.ph !== null && currentLiveData.ppm !== null && currentLiveData.temp !== null) {
+        // Return current live data with deviceId for consistency
+        return h.response({
+          deviceId: DEVICE_ID,
+          ph: currentLiveData.ph,
+          ppm: currentLiveData.ppm,
+          temp: currentLiveData.temp,
+          ts: currentLiveData.lastReceived,
+          _id: 'live-data', // dummy ID for frontend
+          isLive: true // flag to indicate this is real-time data
+        }).code(200);
       }
 
-      return h.response(latest).code(200);
+      return h.response({ message: 'No telemetry found' }).code(404);
     } catch (err) {
       console.error("Error fetching telemetry:", err);
       return h.response({ error: 'Internal Server Error' }).code(500);
@@ -88,18 +156,44 @@ const getTelemetryLatest = {
   },
 };
 
-// ...existing code...
+
+// ---------------------
+// Get Telemetries with Pagination
+// ---------------------
 const getTelemetries = {
   method: 'GET',
   path: '/telemetries',
   options: { auth: 'jwt' },
   handler: async (request, h) => {
     try {
-      const telemetries = await Telemetry.find().sort({ ts: -1 }).lean();
-      console.log("Total telemetries:", telemetries.length);
+      const page = parseInt(request.query.page) || 1;
+      const limit = parseInt(request.query.limit) || 50; // Default 50 records per page
+      const skip = (page - 1) * limit;
 
-      // Return data if exists
-      return h.response({ ok: true, count: telemetries.length, data: telemetries }).code(200);
+      // Get total count for pagination info
+      const totalCount = await Telemetry.countDocuments();
+      
+      // Get paginated data
+      const telemetries = await Telemetry.find()
+        .sort({ ts: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      console.log(`Telemetries page ${page}: ${telemetries.length} records`);
+
+      // Return data with pagination info
+      return h.response({ 
+        ok: true, 
+        data: telemetries,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(totalCount / limit),
+          totalCount: totalCount,
+          hasNext: page < Math.ceil(totalCount / limit),
+          hasPrev: page > 1
+        }
+      }).code(200);
     } catch (err) {
       console.error("Error fetching telemetries:", err);
       return h.response({ ok: false, error: 'Internal Server Error' }).code(500);
@@ -107,7 +201,32 @@ const getTelemetries = {
   },
 };
 
+// ---------------------
+// Download All Telemetries for PDF (separate endpoint for bulk data)
+// ---------------------
+const downloadTelemetries = {
+  method: 'GET',
+  path: '/telemetries/download',
+  options: { auth: 'jwt' },
+  handler: async (request, h) => {
+    try {
+      const telemetries = await Telemetry.find()
+        .sort({ ts: -1 })
+        .lean();
 
+      console.log("Downloading telemetries:", telemetries.length);
+
+      return h.response({ 
+        ok: true, 
+        count: telemetries.length, 
+        data: telemetries 
+      }).code(200);
+    } catch (err) {
+      console.error("Error downloading telemetries:", err);
+      return h.response({ ok: false, error: 'Internal Server Error' }).code(500);
+    }
+  },
+};
 // ---------------------
 // Delete All Telemetries (Clear data after hydroponic cycle)
 // ---------------------
@@ -290,6 +409,6 @@ const nutritionStatus = {
 module.exports = {
   name: 'iot',
   register: async (server) => {
-    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pesticideStatus, controlNutritionPump, nutritionStatus, setTimerPump])
+    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pesticideStatus, controlNutritionPump, nutritionStatus, setTimerPump, downloadTelemetries])
   }
 }
