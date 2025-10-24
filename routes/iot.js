@@ -166,23 +166,43 @@ const getTelemetryLatest = {
   },
 };
 
-
+// ---------------------
+// Get Telemetries with Pagination
+// ---------------------
 const getTelemetries = {
   method: 'GET',
   path: '/telemetries',
   options: { auth: 'jwt' },
   handler: async (request, h) => {
     try {
-      const telemetries = await Telemetry.find().sort({ ts: -1 }).lean();
-      console.log("Total telemetries:", telemetries.length);
+      const page = parseInt(request.query.page) || 1;
+      const limit = parseInt(request.query.limit) || 50; // Default 50 records per page
+      const skip = (page - 1) * limit;
 
-      if (telemetries.length === 0) {
-        // Return 404 if no data
-        return h.response({ ok: false, message: 'No telemetry data found', data: [] }).code(200);
-      }
+      // Get total count for pagination info
+      const totalCount = await Telemetry.countDocuments();
+      
+      // Get paginated data
+      const telemetries = await Telemetry.find()
+        .sort({ ts: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
 
-      // Return data if exists
-      return h.response({ ok: true, count: telemetries.length, data: telemetries }).code(200);
+      console.log(`Telemetries page ${page}: ${telemetries.length} records`);
+
+      // Return data with pagination info
+      return h.response({ 
+        ok: true, 
+        data: telemetries,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(totalCount / limit),
+          totalCount: totalCount,
+          hasNext: page < Math.ceil(totalCount / limit),
+          hasPrev: page > 1
+        }
+      }).code(200);
     } catch (err) {
       console.error("Error fetching telemetries:", err);
       return h.response({ ok: false, error: 'Internal Server Error' }).code(500);
@@ -190,6 +210,32 @@ const getTelemetries = {
   },
 };
 
+// ---------------------
+// Download All Telemetries for PDF (separate endpoint for bulk data)
+// ---------------------
+const downloadTelemetries = {
+  method: 'GET',
+  path: '/telemetries/download',
+  options: { auth: 'jwt' },
+  handler: async (request, h) => {
+    try {
+      const telemetries = await Telemetry.find()
+        .sort({ ts: -1 })
+        .lean();
+
+      console.log("Downloading telemetries:", telemetries.length);
+
+      return h.response({ 
+        ok: true, 
+        count: telemetries.length, 
+        data: telemetries 
+      }).code(200);
+    } catch (err) {
+      console.error("Error downloading telemetries:", err);
+      return h.response({ ok: false, error: 'Internal Server Error' }).code(500);
+    }
+  },
+};
 
 // ---------------------
 // Delete All Telemetries (Clear data after hydroponic cycle)
@@ -296,6 +342,6 @@ const pollStatus = {
 module.exports = {
   name: 'iot',
   register: async (server) => {
-    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pollStatus])
+    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pollStatus, downloadTelemetries])
   }
 }
