@@ -82,8 +82,6 @@ const createTelemetry = {
         ppm,
         temp,
         humidity,
-        lastHumidity,
-        lastHumidityFetchedAt,
         nutritionOn: pump?.nutritionOn || false,
         pesticideOn: pump?.pesticideOn || false,
         ts: new Date(),
@@ -95,6 +93,8 @@ const createTelemetry = {
         id: doc._id,
         ts: doc.ts,
         doc,
+        lastHumidity,
+        lastHumidityFetchedAt,
         action: "saved"
       }).code(201);
 
