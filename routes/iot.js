@@ -74,7 +74,7 @@ const createTelemetry = {
       }
 
       const pump = await Control.findOne({ deviceId: DEVICE_ID }).lean();
-
+      humidity = lastHumidity || 0; // fallback to last humidity if not fetched
       // --- save telemetry ---
       const doc = await Telemetry.create({
         deviceId: DEVICE_ID,
