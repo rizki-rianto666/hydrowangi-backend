@@ -92,6 +92,7 @@ const createTelemetry = {
         ok: true,
         id: doc._id,
         ts: doc.ts,
+        doc,
         action: "saved"
       }).code(201);
 
