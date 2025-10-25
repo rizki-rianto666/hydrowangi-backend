@@ -94,6 +94,7 @@ const createTelemetry = {
         ts: doc.ts,
         doc,
         lastHumidity,
+        humidity,
         lastHumidityFetchedAt,
         action: "saved"
       }).code(201);
