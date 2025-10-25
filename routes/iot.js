@@ -64,7 +64,7 @@ const createTelemetry = {
             'timezone=Asia%2FJakarta'
           );
           const data = await response.json();
-          const humidity = data.current.relative_humidity_2m;
+          humidity = data.current.relative_humidity_2m;
 
           lastHumidity = humidity;
           lastHumidityFetchedAt = now;
