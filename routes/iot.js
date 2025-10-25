@@ -1,17 +1,14 @@
+// --- humidity cache (avoid API spam) ---
+let lastHumidity = null;
+let lastHumidityFetchedAt = 0;
+// ---------------------
+
 const Telemetry = require('../models/Telemetry');
 const Control = require('../models/Control');
 const Planted = require('../models/Planted');
 
 const DEVICE_ID = "esp-001"; // default id device, fix 1 aja
 const SECRET_KEY_IOT = process.env.SECRET_KEY_IOT; // key rahasia supaya device ga sembarangan ngirim data
-
-// In-memory store for real-time data (from ESP)
-let currentLiveData = {
-  ph: null,
-  ppm: null,
-  temp: null,
-  lastReceived: null
-};
 
 const getPpm = {
   method: 'GET',
@@ -54,16 +51,42 @@ const createTelemetry = {
         return h.response({ ok: false, message: "Missing required fields (ph, ppm, temp)" }).code(400);
       }
 
-      // Always save to DB
+      // --- fetch humidity (cached every 1 hour) ---
+      const now = Date.now();
+      let humidity = lastHumidity;
+
+      if (!lastHumidity || now - lastHumidityFetchedAt > 3600000) { // 1 hour
+        try {
+          // Replace with your actual weather API endpoint
+          const response = await fetch('https://api.open-meteo.com/v1/forecast?' +
+            'latitude=-6.67778&longitude=106.85389&' +
+            'current=relative_humidity_2m,temperature_2m&' +
+            'timezone=Asia%2FJakarta'
+          );
+          const data = await response.json();
+          const humidity = data.current.relative_humidity_2m;
+
+          lastHumidity = humidity;
+          lastHumidityFetchedAt = now;
+        } catch (err) {
+          console.warn('⚠️ Humidity fetch failed:', err.message);
+        }
+      }
+
+      const pump = await Control.findOne({ deviceId: DEVICE_ID }).lean();
+
+      // --- save telemetry ---
       const doc = await Telemetry.create({
         deviceId: DEVICE_ID,
         ph,
         ppm,
         temp,
+        humidity,
+        nutritionOn: pump?.nutritionOn || false,
+        pesticideOn: pump?.pesticideOn || false,
         ts: new Date(),
       });
 
-      console.log('Telemetry saved:', { ph, ppm, temp });
 
       return h.response({
         ok: true,
