@@ -1,3 +1,8 @@
+// --- humidity cache (avoid API spam) ---
+let lastHumidity = null;
+let lastHumidityFetchedAt = 0;
+// ---------------------
+
 const Telemetry = require('../models/Telemetry');
 const Control = require('../models/Control');
 const Planted = require('../models/Planted');
@@ -13,120 +18,6 @@ let currentLiveData = {
   temp: null,
   lastReceived: null
 };
-
-
-// ---------------------  SIMULASI AJAH
-let simulatedPPM = 1200;      // start mendekati ideal
-let dangerCounter = 0;
-let lastEmailSentAt = null;
-
-const DANGER_CONFIRM_COUNT = 5;          // harus bahaya 5x berturut2
-const EMAIL_COOLDOWN_MS = 10 * 60 * 1000; // 10 menit
-
-const simulatePpmDrift = () => {
-  // drift kecil: -30 sampai +10
-  const drift = Math.floor(Math.random() * 40) - 30;
-  simulatedPPM += drift;
-
-  if (simulatedPPM < 0) simulatedPPM = 0;
-  return simulatedPPM;
-};
-
-
-const createTelemetrySimulation = {
-  method: 'POST',
-  path: "/telemetry-simulation",
-  handler: async (request, h) => {
-    try {
-
-      const { ph, temp } = request.payload;
-
-      if (ph === undefined || temp === undefined) {
-        return h.response({ ok: false, message: "Missing ph or temp" }).code(400);
-      }
-
-      // 🔁 SIMULASI PPM
-      const ppm = simulatePpmDrift();
-
-      // ambil planted (slot 1 contoh)
-      const planted = await Planted.findOne({ slot: 1 }).lean();
-      if (!planted) {
-        return h.response({ message: 'No planted data' }).code(404);
-      }
-
-      const idealPPM = planted.plant.tds;
-      const dangerLimit = idealPPM - 100;
-
-      // update live data
-      currentLiveData = {
-        ph,
-        ppm,
-        temp,
-        lastReceived: new Date()
-      };
-
-      // 🚨 LOGIC ALERT
-      let status = 'SAFE';
-
-      if (ppm < dangerLimit) {
-        dangerCounter++;
-        status = 'DANGER';
-      } else {
-        dangerCounter = 0;
-      }
-
-      // kirim email jika:
-      // - bahaya konsisten
-      // - belum cooldown
-      if (
-        dangerCounter >= DANGER_CONFIRM_COUNT &&
-        (!lastEmailSentAt || Date.now() - lastEmailSentAt > EMAIL_COOLDOWN_MS)
-      ) {
-        await sendAlertEmail({
-          plant: planted.plant.name,
-          ppm,
-          ideal: idealPPM,
-          limit: dangerLimit
-        });
-
-        lastEmailSentAt = Date.now();
-        dangerCounter = 0;
-      }
-
-      // simpan ke DB kalau perubahan signifikan
-      const latestStored = await Telemetry.findOne().sort({ ts: -1 });
-
-      if (!latestStored || Math.abs(ppm - latestStored.ppm) >= 100) {
-        await Telemetry.create({
-          deviceId: DEVICE_ID,
-          ph,
-          ppm,
-          temp,
-          ts: new Date()
-        });
-      }
-
-      return h.response({
-        ok: true,
-        ph,
-        ppm,
-        temp,
-        status,
-        dangerCounter,
-        lastEmailSentAt
-      }).code(200);
-
-    } catch (err) {
-      console.error("Error telemetry:", err);
-      return h.response({ ok: false, error: "Internal Server Error" }).code(500);
-    }
-  },
-};
-
-
-// --------------------- END OF SIMULASI
-
-
 
 const getPpm = {
   method: 'GET',
@@ -148,6 +39,8 @@ const getPpm = {
     }
   }
 }
+
+
 // ---------------------
 // Create Telemetry (device kirim data sensor)
 // ---------------------
@@ -157,80 +50,60 @@ const createTelemetry = {
   handler: async (request, h) => {
     try {
       const secret = request.headers['x-secret-key'];
-      console.log('secret Req', secret)
       if (secret !== process.env.SECRET_KEY_IOT) {
         return h.response({ ok: false, message: "Unauthorized" }).code(401);
       }
+
       const { ph, ppm, temp } = request.payload;
 
       if (ph === undefined || ppm === undefined || temp === undefined) {
         return h.response({ ok: false, message: "Missing required fields (ph, ppm, temp)" }).code(400);
       }
 
-      // ✅ ALWAYS update real-time data for display
-      currentLiveData = {
-        ph, ppm, temp,
-        lastReceived: new Date()
-      };
+      // --- fetch humidity (cached every 1 hour) ---
+      const now = Date.now();
+      let humidity = lastHumidity;
 
-      console.log('Live data updated:', { ph, ppm, temp });
+      if (!lastHumidity || now - lastHumidityFetchedAt > 3600000) { // 1 hour
+        try {
+          // Replace with your actual weather API endpoint
+          const response = await fetch('https://api.open-meteo.com/v1/forecast?' +
+            'latitude=-6.67778&longitude=106.85389&' +
+            'current=relative_humidity_2m,temperature_2m&' +
+            'timezone=Asia%2FJakarta'
+          );
+          const data = await response.json();
+          humidity = data.current.relative_humidity_2m;
 
-      // ✅ Only save to database if notable changes
-      const latestStored = await Telemetry.findOne()
-        .sort({ ts: -1 });
-
-      // First record? Always save
-      if (!latestStored) {
-        const doc = await Telemetry.create({
-          deviceId: DEVICE_ID,
-          ph,
-          ppm,
-          temp,
-          ts: new Date(),
-        });
-        return h
-          .response({ ok: true, id: doc._id, ts: doc.ts, action: "saved (first record)" })
-          .code(201);
+          lastHumidity = humidity;
+          lastHumidityFetchedAt = now;
+        } catch (err) {
+          console.warn('⚠️ Humidity fetch failed:', err.message);
+        }
       }
 
-      // Check for notable changes based on your thresholds
-      const hasNotableChange = 
-        Math.abs(ph - latestStored.ph) >= 1 ||      // pH changes by 1 point
-        Math.abs(ppm - latestStored.ppm) >= 100 ||  // PPM changes by 100
-        Math.abs(temp - latestStored.temp) >= 5;    // Temp changes by 5°C
+      const pump = await Control.findOne({ deviceId: DEVICE_ID }).lean();
+      humidity = lastHumidity || 0; // fallback to last humidity if not fetched
+      // --- save telemetry ---
+      const doc = await Telemetry.create({
+        deviceId: DEVICE_ID,
+        ph,
+        ppm,
+        temp,
+        humidity,
+        nutritionOn: pump?.nutritionOn || false,
+        pesticideOn: pump?.pesticideOn || false,
+        ts: new Date(),
+      });
 
-      if (hasNotableChange) {
-        const doc = await Telemetry.create({
-          deviceId: DEVICE_ID,
-          ph,
-          ppm,
-          temp,
-          ts: new Date(),
-        });
-        return h
-          .response({ 
-            ok: true, 
-            id: doc._id, 
-            ts: doc.ts, 
-            action: "saved (notable change)",
-            changes: {
-              ph: `${latestStored.ph} → ${ph}`,
-              ppm: `${latestStored.ppm} → ${ppm}`,
-              temp: `${latestStored.temp} → ${temp}`
-            }
-          })
-          .code(201);
-      } else {
-        // No notable changes, don't save to database
-        return h
-          .response({ 
-            ok: true, 
-            action: "live data updated, storage skipped (no notable changes)",
-            message: "Data unchanged beyond thresholds - not saved to DB",
-            currentValues: { ph, ppm, temp }
-          })
-          .code(200);
-      }
+
+      return h.response({
+        ok: true,
+        id: doc._id,
+        ts: doc.ts,
+        doc,
+        action: "saved"
+      }).code(201);
 
     } catch (err) {
       console.error("Error saving telemetry:", err);
@@ -238,6 +111,7 @@ const createTelemetry = {
     }
   },
 };
+
 
 // ---------------------
 // Get latest Telemetry (FE ambil data sensor terbaru - REAL TIME from memory)
@@ -248,21 +122,11 @@ const getTelemetryLatest = {
   options: { auth: 'jwt' },
   handler: async (request, h) => {
     try {
-      // Return real-time data from memory, not from database
-      if (currentLiveData.ph !== null && currentLiveData.ppm !== null && currentLiveData.temp !== null) {
-        // Return current live data with deviceId for consistency
-        return h.response({
-          deviceId: DEVICE_ID,
-          ph: currentLiveData.ph,
-          ppm: currentLiveData.ppm,
-          temp: currentLiveData.temp,
-          ts: currentLiveData.lastReceived,
-          _id: 'live-data', // dummy ID for frontend
-          isLive: true // flag to indicate this is real-time data
-        }).code(200);
+      const latest = await Telemetry.findOne().sort({ ts: -1 }).lean();
+      if (!latest) {
+        return h.response({ message: 'No telemetry found' }).code(404);
       }
-
-      return h.response({ message: 'No telemetry found' }).code(404);
+      return h.response(latest).code(200);
     } catch (err) {
       console.error("Error fetching telemetry:", err);
       return h.response({ error: 'Internal Server Error' }).code(500);
@@ -286,7 +150,7 @@ const getTelemetries = {
 
       // Get total count for pagination info
       const totalCount = await Telemetry.countDocuments();
-      
+
       // Get paginated data
       const telemetries = await Telemetry.find()
         .sort({ ts: -1 })
@@ -297,8 +161,8 @@ const getTelemetries = {
       console.log(`Telemetries page ${page}: ${telemetries.length} records`);
 
       // Return data with pagination info
-      return h.response({ 
-        ok: true, 
+      return h.response({
+        ok: true,
         data: telemetries,
         pagination: {
           currentPage: page,
@@ -330,10 +194,10 @@ const downloadTelemetries = {
 
       console.log("Downloading telemetries:", telemetries.length);
 
-      return h.response({ 
-        ok: true, 
-        count: telemetries.length, 
-        data: telemetries 
+      return h.response({
+        ok: true,
+        count: telemetries.length,
+        data: telemetries
       }).code(200);
     } catch (err) {
       console.error("Error downloading telemetries:", err);
@@ -341,6 +205,7 @@ const downloadTelemetries = {
     }
   },
 };
+
 // ---------------------
 // Delete All Telemetries (Clear data after hydroponic cycle)
 // ---------------------
@@ -378,15 +243,15 @@ const deleteAllTelemetries = {
 };
 
 
-// ---------------------
+
 // Pesticide control (FE trigger ON)
 // ---------------------
 // helper untuk sleep
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 let pumpDurations = {
-  nutrisi: 10000,     // default 10 detik
-  pestisida: 10000
+  nutrisi: 5000,     // default 10 detik
+  pestisida: 5000
 };
 
 const setTimerPump = {
@@ -417,7 +282,7 @@ const controlPesticide = {
       );
 
       // tunggu dulu....
-    await sleep(pumpDurations['pestisida']);  
+      await sleep(pumpDurations['pestisida']);
 
       // set OFF
       await Control.findOneAndUpdate(
@@ -476,7 +341,7 @@ const controlNutritionPump = {
       );
 
       // tunggu 10 detik
-      await sleep(pumpDurations['nutrisi']); 
+      await sleep(pumpDurations['nutrisi']);
 
       // set OFF
       await Control.findOneAndUpdate(
