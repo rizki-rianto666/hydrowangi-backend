@@ -112,65 +112,6 @@ const getPlantedBySlot = {
     }
 };
 
-// Harvest plant from specific slot
-const harvestedPlant = {
-    method: 'POST',
-    path: '/harvest/{slot?}',
-    options: { auth: 'jwt' },
-    handler: async (request, h) => {
-        try {
-            const slot = request.params.slot ? parseInt(request.params.slot) : null;
-
-            let planted;
-
-            if (slot) {
-                // Validate slot number
-                if (slot < 1 || slot > 2) {
-                    return h.response({ message: 'Slot harus 1 atau 2!' }).code(400);
-                }
-
-                // Get specific slot
-                planted = await Planted.findOne({ slot });
-                if (!planted) {
-                    return h.response({ message: `Tidak ada tanaman di slot ${slot}` }).code(404);
-                }
-            } else {
-                // Get any ready plant (backward compatibility)
-                planted = await Planted.findOne();
-                if (!planted) {
-                    return h.response({ message: 'Tidak ada tanaman yang ditanam' }).code(404);
-                }
-            }
-
-            const now = Date.now();
-
-            // Check if ready for harvest
-            if (now < planted.harvestTime) {
-                const remainingDays = Math.ceil((planted.harvestTime - now) / 86400000);
-                return h.response({
-                    message: `Belum waktunya panen. Masih ${remainingDays} hari lagi.`,
-                    remaining: planted.harvestTime - now,
-                    slot: planted.slot
-                }).code(400);
-            }
-
-            // Ready for harvest - remove from database
-            await Planted.deleteOne({ _id: planted._id });
-
-            return h.response({
-                message: `Panen berhasil dari slot ${planted.slot}!`,
-                harvestedPlant: planted.plant,
-                slot: planted.slot,
-                harvestedAt: now
-            }).code(200);
-
-        } catch (err) {
-            console.error('Harvest error:', err);
-            return h.response({ message: 'Server error' }).code(500);
-        }
-    }
-};
-
 // Get planted by ID (keep for backward compatibility)
 const getPlantedById = {
     method: "GET",
@@ -193,36 +134,6 @@ const getPlantedById = {
     }
 };
 
-// Update planted plant
-const updatePlanted = {
-    method: "PUT",
-    path: "/planted/{id}",
-    options: { auth: "jwt" },
-    handler: async (request, h) => {
-        try {
-            const { id } = request.params;
-            const updateData = request.payload;
-
-            const updatedPlanted = await Planted.findByIdAndUpdate(
-                id,
-                {
-                    ...updateData,
-                    updatedAt: Date.now()
-                },
-                { new: true }
-            );
-
-            if (!updatedPlanted) {
-                return h.response({ message: 'Planted not found' }).code(404);
-            }
-
-            return h.response(updatedPlanted).code(200);
-        } catch (error) {
-            console.error('Error updating planted:', error);
-            return h.response({ message: 'Failed to update planted' }).code(500);
-        }
-    }
-};
 
 // Delete planted plant (now with slot support)
 const deletePlanted = {
@@ -344,9 +255,7 @@ module.exports = {
             createPlanted,           // POST /planted/{slot?}
             getAllPlanted,          // GET /planted
             getPlantedBySlot,       // GET /planted/{slot}
-            harvestedPlant,         // POST /harvest/{slot?}
             getPlantedById,         // GET /planted/id/{id}
-            updatePlanted,          // PUT /planted/{id}
             deletePlanted,          // DELETE /planted/{id}
             deletePlantedBySlot,    // DELETE /planted/slot/{slot}
             getSystemStatus         // GET /planted/status

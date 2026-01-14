@@ -14,6 +14,120 @@ let currentLiveData = {
   lastReceived: null
 };
 
+
+// ---------------------  SIMULASI AJAH
+let simulatedPPM = 1200;      // start mendekati ideal
+let dangerCounter = 0;
+let lastEmailSentAt = null;
+
+const DANGER_CONFIRM_COUNT = 5;          // harus bahaya 5x berturut2
+const EMAIL_COOLDOWN_MS = 10 * 60 * 1000; // 10 menit
+
+const simulatePpmDrift = () => {
+  // drift kecil: -30 sampai +10
+  const drift = Math.floor(Math.random() * 40) - 30;
+  simulatedPPM += drift;
+
+  if (simulatedPPM < 0) simulatedPPM = 0;
+  return simulatedPPM;
+};
+
+
+const createTelemetrySimulation = {
+  method: 'POST',
+  path: "/telemetry-simulation",
+  handler: async (request, h) => {
+    try {
+
+      const { ph, temp } = request.payload;
+
+      if (ph === undefined || temp === undefined) {
+        return h.response({ ok: false, message: "Missing ph or temp" }).code(400);
+      }
+
+      // 🔁 SIMULASI PPM
+      const ppm = simulatePpmDrift();
+
+      // ambil planted (slot 1 contoh)
+      const planted = await Planted.findOne({ slot: 1 }).lean();
+      if (!planted) {
+        return h.response({ message: 'No planted data' }).code(404);
+      }
+
+      const idealPPM = planted.plant.tds;
+      const dangerLimit = idealPPM - 100;
+
+      // update live data
+      currentLiveData = {
+        ph,
+        ppm,
+        temp,
+        lastReceived: new Date()
+      };
+
+      // 🚨 LOGIC ALERT
+      let status = 'SAFE';
+
+      if (ppm < dangerLimit) {
+        dangerCounter++;
+        status = 'DANGER';
+      } else {
+        dangerCounter = 0;
+      }
+
+      // kirim email jika:
+      // - bahaya konsisten
+      // - belum cooldown
+      if (
+        dangerCounter >= DANGER_CONFIRM_COUNT &&
+        (!lastEmailSentAt || Date.now() - lastEmailSentAt > EMAIL_COOLDOWN_MS)
+      ) {
+        await sendAlertEmail({
+          plant: planted.plant.name,
+          ppm,
+          ideal: idealPPM,
+          limit: dangerLimit
+        });
+
+        lastEmailSentAt = Date.now();
+        dangerCounter = 0;
+      }
+
+      // simpan ke DB kalau perubahan signifikan
+      const latestStored = await Telemetry.findOne().sort({ ts: -1 });
+
+      if (!latestStored || Math.abs(ppm - latestStored.ppm) >= 100) {
+        await Telemetry.create({
+          deviceId: DEVICE_ID,
+          ph,
+          ppm,
+          temp,
+          ts: new Date()
+        });
+      }
+
+      return h.response({
+        ok: true,
+        ph,
+        ppm,
+        temp,
+        status,
+        dangerCounter,
+        lastEmailSentAt
+      }).code(200);
+
+    } catch (err) {
+      console.error("Error telemetry:", err);
+      return h.response({ ok: false, error: "Internal Server Error" }).code(500);
+    }
+  },
+};
+
+
+// --------------------- END OF SIMULASI
+
+
+
 const getPpm = {
   method: 'GET',
   path: '/ppm',
@@ -409,6 +523,6 @@ const nutritionStatus = {
 module.exports = {
   name: 'iot',
   register: async (server) => {
-    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pesticideStatus, controlNutritionPump, nutritionStatus, setTimerPump, downloadTelemetries])
+    server.route([createTelemetrySimulation ,getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pesticideStatus, controlNutritionPump, nutritionStatus, setTimerPump, downloadTelemetries])
   }
 }
