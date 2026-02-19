@@ -73,38 +73,37 @@ const init = async () => {
 // Vercel handler
 module.exports = async (req, res) => {
   const srv = await init();
-  let url = req.url;
+
+  // Read raw body from stream
+  const body = await new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', chunk => (data += chunk));
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
 
   const { statusCode, headers, result, payload } = await srv.inject({
     method: req.method,
-    url,
+    url: req.url,
     headers: req.headers,
-    payload: req.body,
+    payload: body || undefined,
   });
 
-  // Always set CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Expose-Headers", "WWW-Authenticate, Server-Authorization, content-length, date");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate, Server-Authorization, content-length, date');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-
-  // forward headers ke vercel response, kecuali content-encoding
   for (const [key, value] of Object.entries(headers)) {
-    if (key.toLowerCase() === "content-encoding") continue;
+    if (key.toLowerCase() === 'content-encoding') continue;
     res.setHeader(key, value);
   }
 
   res.statusCode = statusCode;
-
-  // ✅ fix disini
-  res.statusCode = statusCode;
-
-
   res.end(
-    typeof result !== "undefined"
-      ? (typeof result === "object" ? JSON.stringify(result) : String(result))
+    typeof result !== 'undefined'
+      ? (typeof result === 'object' ? JSON.stringify(result) : String(result))
       : payload
   );
 };
