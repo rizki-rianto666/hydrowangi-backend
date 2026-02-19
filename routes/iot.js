@@ -388,6 +388,6 @@ const nutritionStatus = {
 module.exports = {
   name: 'iot',
   register: async (server) => {
-    server.route([createTelemetrySimulation ,getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pesticideStatus, controlNutritionPump, nutritionStatus, setTimerPump, downloadTelemetries])
+    server.route([getPpm, createTelemetry, getTelemetries, getTelemetryLatest, deleteAllTelemetries, controlPesticide, pesticideStatus, controlNutritionPump, nutritionStatus, setTimerPump, downloadTelemetries])
   }
 }
