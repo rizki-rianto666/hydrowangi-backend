@@ -27,9 +27,9 @@ async function initServer() {
   }
 
   await server.register(require('./routes/auth'), { routes: { prefix: '/api' } });
-  await server.register(require('./routes/iot'), { routes: { prefix: '/api/' } });
-  await server.register(require('./routes/plants'), { routes: { prefix: '/api/' } });
-  await server.register(require('./routes/planted'), { routes: { prefix: '/api/' } });
+  await server.register(require('./routes/iot'), { routes: { prefix: '/api' } });
+  await server.register(require('./routes/plants'), { routes: { prefix: '/api' } });
+  await server.register(require('./routes/planted'), { routes: { prefix: '/api' } });
 
   server.route({
     method: 'GET',

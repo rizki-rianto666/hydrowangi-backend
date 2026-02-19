@@ -21,7 +21,7 @@ let currentLiveData = {
 
 const getPpm = {
   method: 'GET',
-  path: 'ppm',
+  path: '/ppm',
   handler: async (request, h) => {
     try {
       const secret = request.headers['x-secret-key'];
