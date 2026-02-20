@@ -74,7 +74,9 @@ const testPlant = {
         auth: false
     },
     handler: async (request, h) => {
-        return h.response({ message: 'Test endpoint for plants' }).code(200);
+        const plants = await Plants.find().sort({ createdAt: -1 });
+        console.log(plants)
+            return h.response(plants).code(200);
     }
 };
 
