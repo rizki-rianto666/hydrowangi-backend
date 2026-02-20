@@ -8,6 +8,7 @@ async function initServer() {
   if (cachedServer) return cachedServer;
 
   const server = Hapi.server({
+    compression: false, // tambah ini
     routes: { cors: { origin: ["*"] } },
   });
 
@@ -62,13 +63,9 @@ module.exports = async (req, res) => {
   });
 
   res.status(response.statusCode);
-
-  const skipHeaders = ["transfer-encoding"];
-  for (const [k, v] of Object.entries(response.headers)) {
-    if (!skipHeaders.includes(k.toLowerCase())) {
-      res.setHeader(k, v);
-    }
-  }
-
+  res.setHeader(
+    "Content-Type",
+    response.headers["content-type"] || "application/json",
+  );
   res.end(response.payload);
 };
