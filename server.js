@@ -62,6 +62,13 @@ module.exports = async (req, res) => {
   });
 
   res.status(response.statusCode);
-  res.setHeader('Content-Type', response.headers['content-type'] || 'application/json');
+
+  const skipHeaders = ["transfer-encoding"];
+  for (const [k, v] of Object.entries(response.headers)) {
+    if (!skipHeaders.includes(k.toLowerCase())) {
+      res.setHeader(k, v);
+    }
+  }
+
   res.end(response.payload);
 };
