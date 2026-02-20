@@ -55,18 +55,18 @@ module.exports = async (req, res) => {
   const server = await initServer();
 
   // READ BODY FIRST
-  const body = await new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', chunk => (data += chunk));
-    req.on('end', () => resolve(data));
-    req.on('error', reject);
-  });
+  // const body = await new Promise((resolve, reject) => {
+  //   let data = '';
+  //   req.on('data', chunk => (data += chunk));
+  //   req.on('end', () => resolve(data));
+  //   req.on('error', reject);
+  // });
 
   const response = await server.inject({
     method: req.method,
     url: req.url,
     headers: req.headers,
-    payload: body || undefined,
+    payload: req.body || undefined,
   });
 
   res.status(response.statusCode);
