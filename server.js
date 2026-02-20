@@ -8,7 +8,7 @@ async function initServer() {
   if (cachedServer) return cachedServer;
 
   const server = Hapi.server({
-    compression: false, // tambah ini
+    compression: false,
     routes: { cors: { origin: ["*"] } },
   });
 
@@ -53,19 +53,33 @@ async function initServer() {
 }
 
 module.exports = async (req, res) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.status(204).end();
+    return;
+  }
+
   const server = await initServer();
 
   const response = await server.inject({
     method: req.method,
     url: req.url,
-    headers: req.headers,
+    headers: { ...req.headers, "accept-encoding": "identity" },
     payload: req.body || undefined,
   });
 
   res.status(response.statusCode);
-  res.setHeader(
-    "Content-Type",
-    response.headers["content-type"] || "application/json",
-  );
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+  const skipHeaders = ["transfer-encoding"];
+  for (const [k, v] of Object.entries(response.headers)) {
+    if (!skipHeaders.includes(k.toLowerCase())) {
+      res.setHeader(k, v);
+    }
+  }
+
   res.end(response.payload);
 };
