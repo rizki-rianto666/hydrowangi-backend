@@ -66,9 +66,21 @@ const deletePlants = {
     }
 };
 
+
+const testPlant = {
+    method: 'GET',
+    path: '/plants/test',
+    options: {
+        auth: false
+    },
+    handler: async (request, h) => {
+        return h.response({ message: 'Test endpoint for plants' }).code(200);
+    }
+};
+
 module.exports = {
     name: 'plants',
     register: async (server) => {
-        server.route([createPlant, getPlants, deletePlants]);
+        server.route([createPlant, getPlants, deletePlants, testPlant]);
     }
 }; 
