@@ -54,6 +54,14 @@ async function initServer() {
 module.exports = async (req, res) => {
   const server = await initServer();
 
+  // READ BODY FIRST
+  const body = await new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', chunk => (data += chunk));
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
+
   const response = await server.inject({
     method: req.method,
     url: req.url,
@@ -67,11 +75,10 @@ module.exports = async (req, res) => {
     res.setHeader(k, v);
   }
 
-  // FIX HERE
   if (response.payload && response.payload.length > 0) {
     res.end(response.payload);
   } else {
-    res.setHeader("Content-Type", "application/json");
+    res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(response.result ?? {}));
   }
 };
