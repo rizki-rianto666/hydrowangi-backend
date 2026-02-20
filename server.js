@@ -54,14 +54,6 @@ async function initServer() {
 module.exports = async (req, res) => {
   const server = await initServer();
 
-  // READ BODY FIRST
-  // const body = await new Promise((resolve, reject) => {
-  //   let data = '';
-  //   req.on('data', chunk => (data += chunk));
-  //   req.on('end', () => resolve(data));
-  //   req.on('error', reject);
-  // });
-
   const response = await server.inject({
     method: req.method,
     url: req.url,
@@ -70,15 +62,6 @@ module.exports = async (req, res) => {
   });
 
   res.status(response.statusCode);
-
-  for (const [k, v] of Object.entries(response.headers)) {
-    res.setHeader(k, v);
-  }
-
-  if (response.payload && response.payload.length > 0) {
-    res.end(response.payload);
-  } else {
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify(response.result ?? {}));
-  }
+  res.setHeader('Content-Type', response.headers['content-type'] || 'application/json');
+  res.end(response.payload);
 };
