@@ -6,18 +6,11 @@ let lastHumidityFetchedAt = 0;
 const Telemetry = require('../models/Telemetry');
 const Control = require('../models/Control');
 const Planted = require('../models/Planted');
+const { checkAndSendPPMAlert } = require('./utils');
+
 
 const DEVICE_ID = "esp-001"; // default id device, fix 1 aja
 const SECRET_KEY_IOT = process.env.SECRET_KEY_IOT; // key rahasia supaya device ga sembarangan ngirim data
-
-
-// In-memory store for real-time data (from ESP)
-let currentLiveData = {
-  ph: null,
-  ppm: null,
-  temp: null,
-  lastReceived: null
-};
 
 const getPpm = {
   method: 'GET',
@@ -95,6 +88,8 @@ const createTelemetry = {
         pesticideOn: pump?.pesticideOn || false,
         ts: new Date(),
       });
+
+      await checkAndSendPPMAlert(ppm);
 
 
       return h.response({
