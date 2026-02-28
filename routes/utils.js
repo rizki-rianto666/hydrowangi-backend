@@ -27,7 +27,10 @@ export async function checkAndSendPPMAlert(ppm) {
   }
 
   const isDanger = ppm < batasMin || ppm > batasMax;
-
+  console.log("targetTDS:", planted?.plant?.tds);
+  console.log("batasMin:", batasMin, "batasMax:", batasMax);
+  console.log("isDanger:", isDanger);
+  console.log("lastPPMStatus:", lastPPMStatus);
   if (isDanger && lastPPMStatus === "normal") {
     const now = Date.now();
 
