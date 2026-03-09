@@ -17,11 +17,16 @@ const createPlant = {
     try {
       const { name, description, tds, image } = request.payload;
 
-      const upload = await new Promise((res, rej) => {
+      if (!image) {
+        return h.response({ message: "No image provided" }).code(400);
+      }
+
+      const upload = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "plants" },
           (error, result) => {
-            if (error) reject(error);
+            if (error)
+              reject(error);
             else resolve(result);
           },
         );
@@ -35,6 +40,7 @@ const createPlant = {
         tds,
         image: upload.secure_url,
       });
+
       const savedPlant = await newPlant.save();
       return h
         .response({
