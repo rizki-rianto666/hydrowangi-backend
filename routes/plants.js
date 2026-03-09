@@ -17,7 +17,7 @@ const createPlant = {
     try {
       const { name, description, tds, image } = request.payload;
 
-      const upload = await new Promis((res, rej) => {
+      const upload = await new Promise((res, rej) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "plants" },
           (error, result) => {
