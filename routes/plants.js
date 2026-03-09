@@ -10,6 +10,7 @@ const createPlant = {
       output: "stream",
       parse: true,
       multipart: true,
+      allow: "multipart/form-data", // ✅ add this
       maxBytes: 5 * 1024 * 1024,
     },
   },
@@ -25,8 +26,7 @@ const createPlant = {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "plants" },
           (error, result) => {
-            if (error)
-              reject(error);
+            if (error) reject(error);
             else resolve(result);
           },
         );
