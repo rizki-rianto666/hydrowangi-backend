@@ -36,15 +36,10 @@ const createPlanted = {
             const { plant } = request.payload;
             console.log('Plant data:', plant);
 
-            // Calculate harvest time on backend
-            const harvestTime = Date.now() + plant.harvestDays * 86400000;
-
             const newPlanted = new Planted({
                 plant,
-                harvestTime,
                 slot,
                 plantedAt: Date.now(),
-                status: 'growing'
             });
 
             await newPlanted.save();
@@ -196,58 +191,6 @@ const deletePlantedBySlot = {
     }
 };
 
-// Get system status
-const getSystemStatus = {
-    method: "GET",
-    path: "/planted/status",
-    options: { auth: "jwt" },
-    handler: async (request, h) => {
-        try {
-            const allPlanted = await Planted.find();
-            const now = Date.now();
-
-            const status = {
-                totalPlants: allPlanted.length,
-                availableSlots: [],
-                occupiedSlots: [],
-                readyForHarvest: [],
-                growing: []
-            };
-
-            // Check each slot
-            for (let slot = 1; slot <= 2; slot++) {
-                const planted = allPlanted.find(p => p.slot === slot);
-
-                if (planted) {
-                    status.occupiedSlots.push(slot);
-
-                    if (now >= planted.harvestTime) {
-                        status.readyForHarvest.push({
-                            slot,
-                            plant: planted.plant.name,
-                            readySince: planted.harvestTime
-                        });
-                    } else {
-                        const remainingDays = Math.ceil((planted.harvestTime - now) / 86400000);
-                        status.growing.push({
-                            slot,
-                            plant: planted.plant.name,
-                            remainingDays
-                        });
-                    }
-                } else {
-                    status.availableSlots.push(slot);
-                }
-            }
-
-            return h.response(status).code(200);
-        } catch (error) {
-            console.error('Error getting system status:', error);
-            return h.response({ message: 'Failed to get system status' }).code(500);
-        }
-    }
-};
-
 module.exports = {
     name: 'planted',
     register: async (server) => {
@@ -258,7 +201,6 @@ module.exports = {
             getPlantedById,         // GET /planted/id/{id}
             deletePlanted,          // DELETE /planted/{id}
             deletePlantedBySlot,    // DELETE /planted/slot/{slot}
-            getSystemStatus         // GET /planted/status
         ]);
     }
 };

@@ -8,7 +8,6 @@ const plantedSchema = new mongoose.Schema({
       name: { type: String, required: true },
       description: { type: String, required: true },
       tds: { type: Number, required: true },
-      harvestDays: { type: Number, required: true },
       image: { type: String, required: true }
     }
   },
@@ -24,24 +23,9 @@ const plantedSchema = new mongoose.Schema({
       message: 'Slot must be 1 or 2'
     }
   },
-  harvestTime: {
-    type: Number,
-    required: true,
-    validate: {
-      validator: function(v) {
-        return v > Date.now();
-      },
-      message: 'Harvest time must be in the future'
-    }
-  },
   plantedAt: {
     type: Number,
     default: Date.now
-  },
-  status: {
-    type: String,
-    enum: ['growing', 'ready', 'harvested'],
-    default: 'growing'
   },
   createdAt: {
     type: Date,
