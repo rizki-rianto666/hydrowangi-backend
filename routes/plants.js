@@ -9,8 +9,8 @@ const createPlant = {
     payload: {
       output: "stream",
       parse: true,
-      multipart: true,
-      allow: "multipart/form-data", // ✅ add this
+      multipart: { output: "stream" },
+      allow: "multipart/form-data",
       maxBytes: 5 * 1024 * 1024,
     },
   },
