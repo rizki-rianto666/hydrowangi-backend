@@ -4,6 +4,8 @@ const ControlSchema = new mongoose.Schema(
         deviceId: { type: String, unique: true, index: true, required: true },
         pesticideOn: { type: Boolean, default: false },
         nutritionOn: { type: Boolean, default: false },
+        wifi_username:{type: String},
+        wifi_password:{type: String},
         updatedAt: { type: Date, default: Date.now },
     },
     { versionKey: false }
