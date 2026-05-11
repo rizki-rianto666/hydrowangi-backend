@@ -405,7 +405,7 @@ const nutritionStatus = {
 };
 
 const wifiUpdate = {
-  method: "PUT",
+  method: "POST",
   path: "/wifi",
   handler: async (request, h) => {
     try {
