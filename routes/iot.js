@@ -393,6 +393,7 @@ const nutritionStatus = {
         .response({
           ok: true,
           nutritionOn: control?.nutritionOn || false,
+          duration: pumpDurations?.nutrisi,
         })
         .code(200);
     } catch (err) {
@@ -409,26 +410,62 @@ const wifiUpdate = {
   path: "/wifi",
   handler: async (request, h) => {
     try {
-      const { username, password } = request.payload;
+      const { username, password } = request.payload || {};
+      const updateFields = {};
 
-      if (!username || !password) {
-        return h
-          .response({ ok: false, message: "Username dan password harus diisi" })
-          .code(400);
+      if (username !== undefined) {
+        updateFields.wifi_username = username;
+      }
+      if (password !== undefined) {
+        updateFields.wifi_password = password;
       }
 
-      await Control.findOneAndUpdate(
-        { deviceId: DEVICE_ID },
-        { wifi_username: username, wifi_password: password, updatedAt: new Date() },
-        { upsert: true },
-      );
+      if (Object.keys(updateFields).length > 0) {
+        updateFields.updatedAt = new Date();
+        await Control.findOneAndUpdate(
+          { deviceId: DEVICE_ID },
+          updateFields,
+          { upsert: true },
+        );
+      }
+
+      const control = await Control.findOne({ deviceId: DEVICE_ID }).lean();
 
       return h
-        .response({ ok: true, message: "WiFi credentials updated" })
+        .response({
+          ok: true,
+          message: Object.keys(updateFields).length > 0
+            ? "WiFi credentials updated"
+            : "No new WiFi fields received; existing values preserved",
+          wifi_username: control?.wifi_username || null,
+          wifi_password: control?.wifi_password || null,
+        })
         .code(200);
     } catch (err) {
       console.error(err);
       return h.response({ ok: false, message: "Terjadi error" }).code(500);
+    }
+  },
+};
+
+const getWifi = {
+  method: "GET",
+  path: "/wifi",
+  handler: async (request, h) => {
+    try {
+      const control = await Control.findOne({
+        deviceId: DEVICE_ID,
+      }).lean();
+
+      return h.response({
+        ok: true,
+        wifi_username: control?.wifi_username || "",
+        wifi_password: control?.wifi_password || "",
+      });
+    } catch (err) {
+      return h.response({
+        ok: false,
+      }).code(500);
     }
   },
 };
